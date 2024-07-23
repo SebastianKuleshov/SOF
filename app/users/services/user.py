@@ -2,7 +2,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.dependencies import get_password_hash
 from app.users.repositories import UserRepository
+from app.users.schemas import UserCreateSchema, UserOutSchema
 
 
 class UserService:
@@ -12,4 +14,10 @@ class UserService:
     ) -> None:
         self.user_repository = user_repository
 
-    pass
+    async def create_user(
+            self,
+            user: UserCreateSchema
+    ) -> UserOutSchema:
+        user.password = await get_password_hash(user.password)
+        user_model = await self.user_repository.create(user)
+        return UserOutSchema.model_validate(user_model)
