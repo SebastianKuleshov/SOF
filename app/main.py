@@ -6,12 +6,15 @@ from app.auth.routes import router as auth_router
 from app.comments.routes import router as comments_router
 from app.answers.routes import router as answers_router
 from app.questions.routes import router as questions_router
+from app.dependencies import get_settings
+
+settings = get_settings()
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],
+    allow_origins=settings.CORS_ALLOW_ORIGINS.split(','),
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*']
