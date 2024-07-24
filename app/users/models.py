@@ -1,7 +1,7 @@
 import datetime
 
 from sqlalchemy import DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.adapters.postgres.postgres_adapter import Base
@@ -23,4 +23,11 @@ class UserModel(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(
         default=func.now(),
         onupdate=func.now()
+    )
+
+    questions: Mapped['QuestionModel'] = relationship(
+        'QuestionModel',
+        back_populates='user',
+        lazy='noload',
+        cascade='all, delete'
     )
