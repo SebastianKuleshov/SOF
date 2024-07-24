@@ -19,11 +19,13 @@ class QuestionCreateSchema(QuestionBaseSchema):
 class QuestionUpdateSchema(QuestionBaseSchema):
     title: str = Field(None, min_length=10, max_length=150)
     body: Text = Field(None, min_length=30, max_length=3500)
+    accepted_answer_id: int | None = None
 
 
 class QuestionOutSchema(QuestionBaseSchema):
     id: int
     user_id: int
+    accepted_answer_id: int | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

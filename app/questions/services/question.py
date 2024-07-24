@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.questions.repositories import QuestionRepository
+from app.questions.schemas import QuestionUpdateSchema
 
 
 class QuestionService:
@@ -12,4 +13,6 @@ class QuestionService:
     ) -> None:
         self.question_repository = question_repository
 
-    pass
+    async def update(self, question_id: int, question: QuestionUpdateSchema):
+        await self.question_repository.update(question_id, question)
+        return await self.question_repository.get_question_by_id(question_id)
