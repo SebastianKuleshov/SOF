@@ -37,7 +37,7 @@ async def get_users(
 
 
 @router.get(
-    '{user_id}',
+    '/{user_id}',
     response_model=user_schemas.UserOutSchema
 )
 async def get_user(
@@ -58,7 +58,7 @@ async def get_current_user(
 
 
 @router.put(
-    '{user_id}',
+    '/{user_id}',
     response_model=user_schemas.UserUpdateSchema,
     dependencies=[Depends(AuthService.get_user_from_jwt)],
 )
@@ -73,23 +73,8 @@ async def update_user(
     )
 
 
-@router.put(
-    '/me',
-    response_model=user_schemas.UserUpdateSchema
-)
-async def update_current_user(
-        user_service: Annotated[UserService, Depends()],
-        user_model: Annotated[AuthService.get_user_from_jwt, Depends()],
-        user_schema: user_schemas.UserUpdateSchema
-):
-    return await user_service.user_repository.update(
-        user_model.id,
-        user_schema
-    )
-
-
 @router.delete(
-    '/me',
+    '/{user_id}',
     status_code=204
 )
 async def delete_current_user(

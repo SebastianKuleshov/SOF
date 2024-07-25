@@ -2,12 +2,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.adapters.postgres.postgres_adapter import Base
-from app.common.models_mixins import CreatedAtUpdatedAtMixin, IntPKMixin
+from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
 
 
-class UserModel(IntPKMixin, CreatedAtUpdatedAtMixin, Base):
+class UserModel(CreatedAtUpdatedAtMixin, Base):
     __tablename__ = 'users'
 
+    id: Mapped[int_pk]
     nick_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str] = mapped_column(nullable=False)
