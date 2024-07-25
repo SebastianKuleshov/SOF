@@ -2,6 +2,8 @@ import datetime
 from typing import Text
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 from app.users.schemas import UserOutSchema
 
 
@@ -22,12 +24,10 @@ class QuestionUpdateSchema(QuestionBaseSchema):
     accepted_answer_id: int | None = None
 
 
-class QuestionOutSchema(QuestionBaseSchema):
+class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     user_id: int
     accepted_answer_id: int | None
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
 
 
 class QuestionWithUserOutSchema(QuestionOutSchema):

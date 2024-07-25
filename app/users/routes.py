@@ -59,6 +59,7 @@ async def get_current_user(
 
 @router.put(
     '{user_id}',
+    response_model=user_schemas.UserUpdateSchema,
     dependencies=[Depends(AuthService.get_user_from_jwt)],
 )
 async def update_user(
@@ -66,7 +67,7 @@ async def update_user(
         user_id: int,
         user_schema: user_schemas.UserUpdateSchema
 ):
-    return await user_service.user_repository.update(
+    return await user_service.update_user(
         user_id,
         user_schema
     )

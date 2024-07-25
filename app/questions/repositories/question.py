@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -21,3 +22,31 @@ class QuestionRepository(BaseRepository):
         return QuestionWithUserOutSchema.model_validate(
             question
         ) if question else None
+
+    async def check_question_exists(
+            self,
+            question_id: int
+    ):
+        stmt = select(self.model).where(question_id == self.model.id)
+        question = await self.session.scalar(stmt)
+        if not question:
+            raise HTTPException(
+                status_code=404,
+                detail='Question not found'
+            )
+        return True
+
+    async def get_user_questions(
+            self,
+            user_id: int
+    ) -> list[QuestionWithUserOutSchema]:
+        stmt = (select(self.model)
+                .options(joinedload(self.model.user))
+                .where(user_id == self.model.user_id)
+                )
+        questions = await self.session.scalars(stmt)
+        questions = questions.unique().all()
+        return [
+            QuestionWithUserOutSchema.model_validate(question) for question in
+            questions
+        ]

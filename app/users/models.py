@@ -1,8 +1,4 @@
-import datetime
-
-from sqlalchemy import DateTime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.adapters.postgres.postgres_adapter import Base
