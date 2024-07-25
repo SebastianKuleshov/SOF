@@ -26,7 +26,7 @@ class QuestionRepository(BaseRepository):
     async def check_question_exists(
             self,
             question_id: int
-    ):
+    ) -> bool:
         stmt = select(self.model).where(question_id == self.model.id)
         question = await self.session.scalar(stmt)
         if not question:

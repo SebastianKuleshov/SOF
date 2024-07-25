@@ -21,10 +21,13 @@ async def create_question(
         question_service: Annotated[QuestionService, Depends()],
         question: schemas.QuestionCreateSchema
 ):
-    return await question_service.question_repository.create(question)
+    return await question_service.create_question(question)
 
 
-@router.get('/', response_model=list[schemas.QuestionOutSchema])
+@router.get(
+    '/',
+    response_model=list[schemas.QuestionOutSchema]
+)
 async def get_questions(
         question_service: Annotated[QuestionService, Depends()],
         skip: int = 0,
@@ -42,19 +45,6 @@ async def get_question(
         question_id: int
 ):
     return await question_service.get_question(question_id)
-
-
-@router.get(
-    '/user/me',
-    response_model=list[schemas.QuestionWithUserOutSchema]
-)
-async def get_user_questions(
-        question_service: Annotated[QuestionService, Depends()],
-        user_model: Annotated[AuthService.get_user_from_jwt, Depends()],
-):
-    return await question_service.question_repository.get_user_questions(
-        user_model.id
-    )
 
 
 @router.get(
@@ -82,7 +72,8 @@ async def update_question(
         question: schemas.QuestionUpdateSchema
 ):
     return await question_service.update_question(
-        question_id, question
+        question_id,
+        question
     )
 
 

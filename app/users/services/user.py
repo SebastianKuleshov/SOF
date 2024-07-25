@@ -1,11 +1,9 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
-from pydantic import EmailStr
 from sqlalchemy.exc import IntegrityError
 
-from app.dependencies import get_password_hash, verify_password
-from app.users.models import UserModel
+from app.dependencies import get_password_hash
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreateSchema, UserOutSchema, UserUpdateSchema
 
@@ -30,12 +28,7 @@ class UserService:
             user_id: int,
             user_schema: UserUpdateSchema
     ) -> UserUpdateSchema:
-        user_model = await self.user_repository.get_by_id(user_id)
-        if not user_model:
-            raise HTTPException(
-                status_code=404,
-                detail='User not found'
-            )
+        await self.user_repository.check_user_exists(user_id)
 
         try:
             user_model = await self.user_repository.update(
