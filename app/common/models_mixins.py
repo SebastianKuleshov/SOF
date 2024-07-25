@@ -1,6 +1,7 @@
 import datetime
+from typing import Annotated
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -22,5 +23,4 @@ class SoftDeleteMixin:
     )
 
 
-class IntPKMixin:
-    id: Mapped[int] = mapped_column(primary_key=True)
+int_pk = Annotated[int, mapped_column(Integer, primary_key=True, index=True)]
