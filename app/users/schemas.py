@@ -1,9 +1,10 @@
-import datetime
 import re
 from typing_extensions import Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, EmailStr, \
     model_validator, Field
+
+from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 
 
 class UserBaseSchema(BaseModel):
@@ -65,8 +66,6 @@ class UserUpdateSchema(UserBaseSchema):
     email: EmailStr | None = None
 
 
-class UserOutSchema(UserBaseSchema):
+class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     nick_name: str
-    created_at: datetime.datetime
-    updated_at: datetime.datetime

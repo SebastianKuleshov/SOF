@@ -12,7 +12,10 @@ router = APIRouter(
 )
 
 
-@router.post('/token', response_model=schemas.TokenBaseSchema)
+@router.post(
+    '/login',
+    response_model=schemas.TokenBaseSchema
+)
 async def login(
         auth_service: Annotated[AuthService, Depends()],
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
@@ -20,7 +23,10 @@ async def login(
     return await auth_service.login(form_data)
 
 
-@router.post('/refresh', response_model=schemas.TokenBaseSchema)
+@router.post(
+    '/refresh',
+    response_model=schemas.TokenBaseSchema
+)
 async def refresh(
         auth_service: Annotated[AuthService, Depends()],
         refresh_token: str
