@@ -16,18 +16,6 @@ class UserService:
     ) -> None:
         self.user_repository = user_repository
 
-    async def authenticate_user(
-            self,
-            email: EmailStr,
-            password: str
-    ) -> UserModel | None:
-        user = await self.user_repository.get_one({'email': email})
-        if not user:
-            return None
-        if not await verify_password(password, user.password):
-            return None
-        return user
-
     async def create_user(
             self,
             user: UserCreateSchema

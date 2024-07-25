@@ -4,11 +4,13 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import EmailStr
 
 from app.auth.schemas import TokenBaseSchema
+from app.users.models import UserModel
 from app.users.schemas import UserOutSchema
 from app.users.repositories import UserRepository
-from app.dependencies import get_settings, verify_token
+from app.dependencies import get_settings, oauth2_scheme, verify_password
 from app.users.services import UserService
 
 
@@ -45,16 +47,35 @@ class AuthService:
     async def get_user_from_jwt(
             cls,
             user_repository: Annotated[UserRepository, Depends()],
-            payload: Annotated[dict, Depends(verify_token)]
+            is_refresh: bool = False,
+            token: str = Depends(oauth2_scheme)
     ) -> UserOutSchema | None:
-        user_id = payload.get('sub')
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Could not validate credentials',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+
+        settings = get_settings()
+
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM]
+            )
+            if is_refresh and payload.get('token_type') != 'refresh':
+                raise credentials_exception
+            user_id = payload.get('sub')
+            if user_id is None:
+                raise credentials_exception
+        except jwt.PyJWTError:
+            raise credentials_exception
+
         user = await user_repository.get_by_id(user_id)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Could not validate credentials',
-                headers={'WWW-Authenticate': 'Bearer'},
-            )
+            raise credentials_exception
+
         return user
 
     async def __generate_token(
@@ -69,17 +90,21 @@ class AuthService:
         access_token_expire_delta = timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
+        access_to_encode = to_encode.copy()
+        access_to_encode.update({'token_type': 'access'})
         refresh_token_expire_delta = timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
+        refresh_to_encode = to_encode.copy()
+        refresh_to_encode.update({'token_type': 'refresh'})
 
         access_token = await self.create_token(
-            to_encode,
+            access_to_encode,
             access_token_expire_delta
         )
 
         refresh_token = await self.create_token(
-            to_encode,
+            refresh_to_encode,
             refresh_token_expire_delta
         )
 
@@ -89,11 +114,23 @@ class AuthService:
             token_type='bearer'
         )
 
+    async def __authenticate_user(
+            self,
+            email: EmailStr,
+            password: str
+    ) -> UserModel | None:
+        user = await self.user_repository.get_one({'email': email})
+        if not user:
+            return None
+        if not await verify_password(password, user.password):
+            return None
+        return user
+
     async def login(
             self,
             form_data: OAuth2PasswordRequestForm
     ) -> TokenBaseSchema:
-        user = await self.user_service.authenticate_user(
+        user = await self.__authenticate_user(
             form_data.username,
             form_data.password
         )
@@ -109,14 +146,10 @@ class AuthService:
             self,
             refresh_token: str
     ) -> TokenBaseSchema:
-        payload = await verify_token(refresh_token)
-        user_id = payload.get('sub')
-        user = await self.user_repository.get_by_id(user_id)
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Could not validate credentials',
-                headers={'WWW-Authenticate': 'Bearer'},
-            )
+        user = await self.get_user_from_jwt(
+            self.user_repository,
+            True,
+            refresh_token
+        )
 
         return await self.__generate_token(user.id, user.nick_name)
