@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.comments.repositories import CommentRepository
@@ -38,6 +38,15 @@ class CommentService:
                 comment_schema.answer_id
             )
         return await self.comment_repository.create(comment_schema)
+
+    async def get_comment(self, comment_id: int) -> CommentOutSchema:
+        comment = await self.comment_repository.get_by_id(comment_id)
+        if not comment:
+            raise HTTPException(
+                status_code=404,
+                detail='Comment not found'
+            )
+        return comment
 
     async def update_comment(
             self,

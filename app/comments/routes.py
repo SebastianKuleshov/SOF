@@ -39,6 +39,16 @@ async def get_comments(
     )
 
 
+@router.get(
+    '/{comment_id}',
+    response_model=comments_schemas.CommentOutSchema
+)
+async def get_comment(
+        comment_service: Annotated[CommentService, Depends()],
+        comment_id: int
+):
+    return await comment_service.get_comment(comment_id)
+
 @router.put(
     '/{comment_id}',
     response_model=comments_schemas.CommentOutSchema,
@@ -50,6 +60,7 @@ async def update_comment(
         comment: comments_schemas.CommentUpdateSchema
 ):
     return await comment_service.update_comment(comment_id, comment)
+
 
 @router.delete(
     '/{comment_id}',
