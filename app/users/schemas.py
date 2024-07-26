@@ -2,7 +2,7 @@ import re
 from typing_extensions import Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, EmailStr, \
-    model_validator, Field
+    model_validator, Field, model_serializer
 
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 
@@ -69,3 +69,13 @@ class UserUpdateSchema(UserBaseSchema):
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     nick_name: str
+
+    @model_serializer(when_used='json')
+    def to_json(self):
+        return {
+            'id': self.id,
+            'nick_name': self.nick_name,
+            'email': self.email,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }

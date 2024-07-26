@@ -1,8 +1,8 @@
-from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import relationship
 
-from app.core.adapters.postgres.postgres_adapter import Base
 from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
+from app.core.adapters.postgres.postgres_adapter import Base
 
 
 class UserModel(CreatedAtUpdatedAtMixin, Base):
@@ -15,8 +15,15 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     biography: Mapped[str] = mapped_column(nullable=True)
     reputation: Mapped[int] = mapped_column(default=0)
 
-    questions: Mapped['QuestionModel'] = relationship(
+    questions: Mapped[list['QuestionModel']] = relationship(
         'QuestionModel',
+        back_populates='user',
+        lazy='noload',
+        cascade='all, delete'
+    )
+
+    answers: Mapped[list['AnswerModel']] = relationship(
+        'AnswerModel',
         back_populates='user',
         lazy='noload',
         cascade='all, delete'
