@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
-    QuestionWithUserOutSchema, QuestionOutSchema
+    QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema
 from app.users.repositories import UserRepository
 
 
@@ -19,9 +19,13 @@ class QuestionService:
 
     async def create_question(
             self,
-            question_schema: QuestionCreateSchema
+            question_schema: QuestionBaseSchema,
+            user_id: int
     ) -> QuestionOutSchema:
-        await self.user_repository.check_user_exists(question_schema.user_id)
+        question_schema = QuestionCreateSchema(
+            **question_schema.model_dump(),
+            user_id=user_id
+        )
         question_model = await self.question_repository.create(question_schema)
         return QuestionOutSchema.model_validate(question_model)
 
@@ -29,10 +33,12 @@ class QuestionService:
             self,
             question_id: int
     ) -> QuestionWithUserOutSchema:
-        await self.question_repository.check_question_exists(question_id)
-        return await self.question_repository.get_question_by_id(
+        question = await self.question_repository.get_question_by_id(
             question_id
         )
+        if not question:
+            raise HTTPException(status_code=404, detail='Question not found')
+        return question
 
     async def update_question(
             self,
@@ -46,6 +52,6 @@ class QuestionService:
     async def delete_question(
             self,
             question_id: int
-    ):
+    ) -> bool:
         await self.question_repository.check_question_exists(question_id)
         return await self.question_repository.delete(question_id)
