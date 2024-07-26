@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
+from app.answers.models import AnswerModel
 from app.common.repositories.base_repository import BaseRepository
 from app.questions.models import QuestionModel
 from app.questions.schemas import QuestionWithUserOutSchema, \
@@ -43,7 +44,8 @@ class QuestionRepository(BaseRepository):
     ) -> QuestionWithJoinsOutSchema | None:
         stmt = (select(self.model).options(
             joinedload(self.model.user),
-            joinedload(self.model.answers)
+            joinedload(self.model.answers).joinedload(AnswerModel.comments),
+            joinedload(self.model.comments)
         ).where(question_id == self.model.id))
         question = await self.session.scalar(stmt)
         return question

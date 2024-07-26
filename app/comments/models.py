@@ -1,13 +1,13 @@
 from typing import Text
 
-from sqlalchemy import ForeignKey, ForeignKeyConstraint
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.models_mixins import int_pk, CreatedAtUpdatedAtMixin
 from app.core.adapters.postgres.postgres_adapter import Base
 
 
-class Comment(CreatedAtUpdatedAtMixin, Base):
+class CommentModel(CreatedAtUpdatedAtMixin, Base):
     __tablename__ = 'comments'
 
     id: Mapped[int_pk]
@@ -24,20 +24,20 @@ class Comment(CreatedAtUpdatedAtMixin, Base):
         nullable=True
     )
 
-    user: Mapped['User'] = relationship(
-        'User',
+    user: Mapped['UserModel'] = relationship(
+        'UserModel',
         back_populates='comments',
         lazy='noload'
     )
 
-    question: Mapped['Question'] = relationship(
-        'Question',
+    question: Mapped['QuestionModel'] = relationship(
+        'QuestionModel',
         back_populates='comments',
         lazy='noload'
     )
 
-    answer: Mapped['Answer'] = relationship(
-        'Answer',
+    answer: Mapped['AnswerModel'] = relationship(
+        'AnswerModel',
         back_populates='comments',
         lazy='noload'
     )

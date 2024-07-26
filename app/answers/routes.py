@@ -49,7 +49,7 @@ async def get_answer(
 
 @router.put(
     '/{answer_id}',
-    response_model=answer_schemas.AnswerWithUserSchema,
+    response_model=answer_schemas.AnswerWithUserOutSchema,
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 async def update_answer(

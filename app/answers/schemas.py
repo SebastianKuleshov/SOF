@@ -2,8 +2,8 @@ from typing import Text
 
 from pydantic import BaseModel, Field, ConfigDict, model_serializer
 
+from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
-from app.questions.schemas import QuestionOutSchema
 from app.users.schemas import UserOutSchema
 
 
@@ -42,7 +42,7 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
         }
 
 
-class AnswerWithUserSchema(AnswerOutSchema):
+class AnswerWithUserOutSchema(AnswerOutSchema):
     user: UserOutSchema
 
     @model_serializer(when_used='json')
@@ -50,6 +50,38 @@ class AnswerWithUserSchema(AnswerOutSchema):
         base_json = super().to_json()
         base_json['user'] = self.user
         return base_json
+
+
+class AnswerWithCommentsOutSchema(AnswerOutSchema):
+    comments: list[CommentOutSchema]
+
+    @model_serializer(when_used='json')
+    def to_json(self):
+        base_json = super().to_json()
+        base_json['comments'] = self.comments
+        return base_json
+
+
+class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
+    id: int
+    title: str
+    body: Text
+    user_id: int
+    accepted_answer_id: int | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_serializer(when_used='json')
+    def to_json(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'body': self.body,
+            'user_id': self.user_id,
+            'accepted_answer_id': self.accepted_answer_id,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
 
 
 class AnswerWithJoinsOutSchema(AnswerOutSchema):
