@@ -9,7 +9,7 @@ from app.core.adapters.postgres.postgres_adapter import Base
 
 class AnswerModel(CreatedAtUpdatedAtMixin, Base):
     __tablename__ = 'answers'
-    __table_args__ = (UniqueConstraint('question_id'),)
+    __table_args__ = (UniqueConstraint('question_id', 'user_id'),)
 
     id: Mapped[int_pk]
     body: Mapped[Text]
