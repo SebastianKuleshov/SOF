@@ -49,3 +49,10 @@ class UserService:
             )
 
         return UserUpdateSchema.model_validate(user_model)
+
+    async def delete_user(
+            self,
+            user_id: int
+    ) -> bool:
+        await self.user_repository.check_user_exists(user_id)
+        return await self.user_repository.delete(user_id)
