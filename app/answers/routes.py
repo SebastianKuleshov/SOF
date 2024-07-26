@@ -15,9 +15,10 @@ router = APIRouter(
 @router.post('/', response_model=answer_schemas.AnswerOutSchema)
 async def create_answer(
         answer_service: Annotated[AnswerService, Depends()],
-        answer: answer_schemas.AnswerCreateSchema
+        answer: answer_schemas.AnswerCreateSchema,
+        user: Annotated[AuthService.get_user_from_jwt, Depends()]
 ):
-    return await answer_service.create_answer(answer)
+    return await answer_service.create_answer(answer, user.id)
 
 
 @router.get(
@@ -61,11 +62,10 @@ async def update_answer(
 
 @router.delete(
     '/{answer_id}',
-    status_code=204,
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 async def delete_answer(
         answer_service: Annotated[AnswerService, Depends()],
         answer_id: int
-):
+) -> bool:
     return await answer_service.delete_answer(answer_id)

@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
-    AnswerWithUserSchema, AnswerWithJoinsOutSchema
+    AnswerWithUserSchema, AnswerWithJoinsOutSchema, AnswerCreatePayloadSchema, \
+    AnswerOutSchema
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
 
@@ -22,10 +23,12 @@ class AnswerService:
 
     async def create_answer(
             self,
-            answer_schema: AnswerCreateSchema
-    ):
-        await self.user_repository.check_user_exists(
-            answer_schema.user_id
+            answer_schema: AnswerCreateSchema,
+            user_id: int
+    ) -> AnswerOutSchema:
+        answer_schema = AnswerCreatePayloadSchema(
+            **answer_schema.model_dump(),
+            user_id=user_id
         )
         await self.question_repository.check_question_exists(
             answer_schema.question_id
@@ -36,8 +39,13 @@ class AnswerService:
             self,
             answer_id: int
     ) -> AnswerWithJoinsOutSchema:
-        await self.answer_repository.check_answer_exists(answer_id)
-        return await self.answer_repository.get_by_id_with_joins(answer_id)
+        answer = await self.answer_repository.get_by_id_with_joins(answer_id)
+        if not answer:
+            raise HTTPException(
+                status_code=404,
+                detail='Answer not found'
+            )
+        return answer
 
     async def update_answer(
             self,
@@ -51,6 +59,6 @@ class AnswerService:
     async def delete_answer(
             self,
             answer_id: int
-    ):
+    ) -> bool:
         await self.answer_repository.check_answer_exists(answer_id)
         return await self.answer_repository.delete(answer_id)

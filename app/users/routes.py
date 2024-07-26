@@ -81,4 +81,4 @@ async def delete_current_user(
         user_service: Annotated[UserService, Depends()],
         user_id: int
 ) -> bool:
-    return await user_service.user_repository.delete(user_id)
+    return await user_service.delete_user(user_id)

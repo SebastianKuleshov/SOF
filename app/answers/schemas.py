@@ -14,8 +14,11 @@ class AnswerBaseSchema(BaseModel):
 
 
 class AnswerCreateSchema(AnswerBaseSchema):
-    user_id: int
     question_id: int
+
+
+class AnswerCreatePayloadSchema(AnswerCreateSchema):
+    user_id: int
 
 
 class AnswerUpdateSchema(AnswerBaseSchema):
