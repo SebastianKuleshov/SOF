@@ -19,6 +19,13 @@ class UserService:
             self,
             user: UserCreateSchema
     ) -> UserOutSchema:
+        if await self.user_repository.get_one(
+                {'email': user.email}
+        ) is not None:
+            raise HTTPException(
+                status_code=400,
+                detail='Email already exists'
+            )
         user.password = await get_password_hash(user.password)
         user_model = await self.user_repository.create(user)
         return UserOutSchema.model_validate(user_model)
