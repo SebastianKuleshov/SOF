@@ -75,10 +75,10 @@ async def update_user(
 
 @router.delete(
     '/{user_id}',
-    status_code=204
+    dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 async def delete_current_user(
         user_service: Annotated[UserService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()]
-):
-    return await user_service.user_repository.delete(user.id)
+        user_id: int
+) -> bool:
+    return await user_service.user_repository.delete(user_id)
