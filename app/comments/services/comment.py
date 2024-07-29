@@ -30,11 +30,11 @@ class CommentService:
             user_id=user_id
         )
         if comment_schema.question_id:
-            await self.question_repository.check_question_exists(
+            await self.question_repository.get_question_if_exists(
                 comment_schema.question_id
             )
         if comment_schema.answer_id:
-            await self.answer_repository.check_answer_exists(
+            await self.answer_repository.get_answer_if_exists(
                 comment_schema.answer_id
             )
         return await self.comment_repository.create(comment_schema)
@@ -70,7 +70,9 @@ class CommentService:
             comment_id: int,
             user_id: int
     ) -> bool:
-        comment = await self.comment_repository.get_comment_if_exists(comment_id)
+        comment = await self.comment_repository.get_comment_if_exists(
+            comment_id
+        )
         if comment.user_id != user_id:
             raise HTTPException(
                 status_code=403,
