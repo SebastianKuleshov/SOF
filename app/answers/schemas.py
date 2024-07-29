@@ -1,6 +1,6 @@
 from typing import Text
 
-from pydantic import BaseModel, Field, ConfigDict, model_serializer
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
@@ -30,26 +30,9 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
     user_id: int
     question_id: int
 
-    @model_serializer(when_used='json')
-    def to_json(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'question_id': self.question_id,
-            'body': self.body,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
-        }
-
 
 class AnswerWithUserOutSchema(AnswerOutSchema):
     user: UserOutSchema
-
-    @model_serializer(when_used='json')
-    def to_json(self):
-        base_json = super().to_json()
-        base_json['user'] = self.user
-        return base_json
 
 
 class AnswerWithCommentsOutSchema(AnswerOutSchema):
@@ -87,10 +70,3 @@ class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
 class AnswerWithJoinsOutSchema(AnswerOutSchema):
     user: UserOutSchema
     question: QuestionOutSchema
-
-    @model_serializer(when_used='json')
-    def to_json(self):
-        base_json = super().to_json()
-        base_json['user'] = self.user
-        base_json['question'] = self.question
-        return base_json
