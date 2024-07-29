@@ -49,7 +49,7 @@ async def get_answer(
 
 @router.put(
     '/{answer_id}',
-    response_model=answer_schemas.AnswerWithUserOutSchema
+    response_model=answer_schemas.AnswerWithJoinsOutSchema
 )
 async def update_answer(
         answer_service: Annotated[AnswerService, Depends()],

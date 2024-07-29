@@ -38,16 +38,8 @@ class QuestionService:
             self,
             question_id: int
     ) -> QuestionWithJoinsOutSchema:
-        join_options = [
-            joinedload(self.question_repository.model.user),
-            joinedload(self.question_repository.model.answers).joinedload(
-                self.answer_repository.model.comments
-            ),
-            joinedload(self.question_repository.model.comments)
-        ]
         question = await self.question_repository.get_by_id_with_joins(
-            question_id,
-            join_options
+            question_id
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
@@ -58,12 +50,7 @@ class QuestionService:
             skip: int = 0,
             limit: int = 100
     ) -> list[QuestionForListOutSchema]:
-        join_options = [
-            joinedload(self.question_repository.model.user),
-            joinedload(self.question_repository.model.answers)
-        ]
         questions = await self.question_repository.get_multi_with_joins(
-            join_options,
             {},
             skip,
             limit
@@ -81,17 +68,18 @@ class QuestionService:
     async def get_user_questions(
             self,
             user_id: int
-    ) -> list[QuestionWithUserOutSchema]:
+    ) -> list[QuestionForListOutSchema]:
         await self.user_repository.get_entity_if_exists(user_id)
-        join_options = [
-            joinedload(self.question_repository.model.user)
-        ]
         questions = await self.question_repository.get_multi_with_joins(
-            join_options,
             {'user_id': user_id}
         )
         return [
-            QuestionWithUserOutSchema.model_validate(question)
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers)
+                }
+            )
             for question in questions
         ]
 
@@ -100,13 +88,14 @@ class QuestionService:
             question_id: int,
             user_id: int,
             question_schema: QuestionUpdateSchema
-    ) -> QuestionOutSchema:
+    ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        await self.answer_repository.get_entity_if_exists(
-            question_schema.accepted_answer_id
-        )
+        if question_schema.accepted_answer_id:
+            await self.answer_repository.get_entity_if_exists(
+                question_schema.accepted_answer_id
+            )
         if question.user_id != user_id:
             raise HTTPException(
                 status_code=403,
@@ -114,17 +103,10 @@ class QuestionService:
             )
         await self.question_repository.update(question_id, question_schema)
         await self.question_repository.expire_session_for_all()
-        join_options = [
-            joinedload(self.question_repository.model.user),
-            joinedload(self.question_repository.model.answers).joinedload(
-                self.answer_repository.model.comments
-            ),
-            joinedload(self.question_repository.model.comments)
-        ]
-        return await self.question_repository.get_by_id_with_joins(
-            question_id,
-            join_options
+        question = await self.question_repository.get_by_id_with_joins(
+            question_id
         )
+        return QuestionWithJoinsOutSchema.model_validate(question)
 
     async def delete_question(
             self,
