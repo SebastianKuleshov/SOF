@@ -70,7 +70,6 @@ async def update_question(
         question_service: Annotated[QuestionService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question: question_schemas.QuestionUpdateSchema
 ):
     return await question_service.update_question(

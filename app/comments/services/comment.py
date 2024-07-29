@@ -51,15 +51,29 @@ class CommentService:
     async def update_comment(
             self,
             comment_id: int,
+            user_id: int,
             comment_schema: CommentUpdateSchema
     ) -> CommentOutSchema:
-        await self.comment_repository.check_comment_exists(comment_id)
+        comment = await self.comment_repository.get_comment_if_exists(
+            comment_id
+        )
+        if comment.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to update this comment'
+            )
         await self.comment_repository.update(comment_id, comment_schema)
         return await self.comment_repository.get_by_id(comment_id)
 
     async def delete_comment(
             self,
-            comment_id: int
+            comment_id: int,
+            user_id: int
     ) -> bool:
-        await self.comment_repository.check_comment_exists(comment_id)
+        comment = await self.comment_repository.get_comment_if_exists(comment_id)
+        if comment.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to delete this comment'
+            )
         return await self.comment_repository.delete(comment_id)

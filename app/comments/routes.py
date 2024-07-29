@@ -49,25 +49,33 @@ async def get_comment(
 ):
     return await comment_service.get_comment(comment_id)
 
+
 @router.put(
     '/{comment_id}',
-    response_model=comments_schemas.CommentOutSchema,
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=comments_schemas.CommentOutSchema
 )
 async def update_comment(
         comment_service: Annotated[CommentService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         comment_id: int,
         comment: comments_schemas.CommentUpdateSchema
 ):
-    return await comment_service.update_comment(comment_id, comment)
+    return await comment_service.update_comment(
+        comment_id,
+        user.id,
+        comment
+    )
 
 
 @router.delete(
-    '/{comment_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    '/{comment_id}'
 )
 async def delete_comment(
         comment_service: Annotated[CommentService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         comment_id: int
 ) -> bool:
-    return await comment_service.delete_comment(comment_id)
+    return await comment_service.delete_comment(
+        comment_id,
+        user.id
+    )

@@ -67,7 +67,7 @@ class QuestionService:
         question = await self.question_repository.get_question_if_exists(
             question_id
         )
-        await self.answer_repository.check_answer_exists(
+        await self.answer_repository.get_answer_if_exists(
             question_schema.accepted_answer_id
         )
         if question.user_id != user_id:
@@ -77,7 +77,7 @@ class QuestionService:
             )
         await self.question_repository.update(question_id, question_schema)
         await self.question_repository.expire_session_for_all()
-        return await self.question_repository.get_by_id_with_user(question_id)
+        return await self.question_repository.get_by_id_with_joins(question_id)
 
     async def delete_question(
             self,
