@@ -32,14 +32,20 @@ class UserService:
 
     async def update_user(
             self,
-            user_id: int,
+            target_user_id: int,
+            requesting_user_id: int,
             user_schema: UserUpdateSchema
     ) -> UserUpdateSchema:
-        await self.user_repository.check_user_exists(user_id)
+        user = await self.user_repository.get_user_if_exists(target_user_id)
+        if user.id != requesting_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to update this user'
+            )
 
         try:
             user_model = await self.user_repository.update(
-                user_id,
+                target_user_id,
                 user_schema
             )
         except IntegrityError:
@@ -52,7 +58,13 @@ class UserService:
 
     async def delete_user(
             self,
-            user_id: int
+            target_user_id: int,
+            requesting_user_id: int
     ) -> bool:
-        await self.user_repository.check_user_exists(user_id)
-        return await self.user_repository.delete(user_id)
+        user = await self.user_repository.get_user_if_exists(target_user_id)
+        if user.id != requesting_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to delete this user'
+            )
+        return await self.user_repository.delete(target_user_id)

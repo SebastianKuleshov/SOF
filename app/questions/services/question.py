@@ -55,7 +55,7 @@ class QuestionService:
             self,
             user_id: int
     ) -> list[QuestionWithUserOutSchema]:
-        await self.user_repository.check_user_exists(user_id)
+        await self.user_repository.get_user_if_exists(user_id)
         return await self.question_repository.get_user_questions(user_id)
 
     async def update_question(
@@ -64,16 +64,32 @@ class QuestionService:
             user_id: int,
             question_schema: QuestionUpdateSchema
     ) -> QuestionOutSchema:
-        await self.question_repository.check_question_exists(question_id)
+        question = await self.question_repository.get_question_if_exists(
+            question_id
+        )
         await self.answer_repository.check_answer_exists(
             question_schema.accepted_answer_id
         )
+        if question.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to update this question'
+            )
         await self.question_repository.update(question_id, question_schema)
+        await self.question_repository.expire_session_for_all()
         return await self.question_repository.get_by_id_with_user(question_id)
 
     async def delete_question(
             self,
-            question_id: int
+            question_id: int,
+            user_id: int
     ) -> bool:
-        await self.question_repository.check_question_exists(question_id)
+        question = await self.question_repository.get_question_if_exists(
+            question_id
+        )
+        if question.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to delete this question'
+            )
         return await self.question_repository.delete(question_id)

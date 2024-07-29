@@ -68,6 +68,7 @@ async def get_user_questions(
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question: question_schemas.QuestionUpdateSchema
@@ -80,11 +81,14 @@ async def update_question(
 
 
 @router.delete(
-    '/{question_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    '/{question_id}'
 )
 async def delete_question(
         question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int
 ) -> bool:
-    return await question_service.delete_question(question_id)
+    return await question_service.delete_question(
+        question_id,
+        user.id
+    )

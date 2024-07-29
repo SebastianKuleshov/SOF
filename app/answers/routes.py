@@ -49,23 +49,30 @@ async def get_answer(
 
 @router.put(
     '/{answer_id}',
-    response_model=answer_schemas.AnswerWithUserOutSchema,
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=answer_schemas.AnswerWithUserOutSchema
 )
 async def update_answer(
         answer_service: Annotated[AnswerService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         answer_id: int,
         answer: answer_schemas.AnswerUpdateSchema
 ):
-    return await answer_service.update_answer(answer_id, answer)
+    return await answer_service.update_answer(
+        answer_id,
+        user.id,
+        answer
+    )
 
 
 @router.delete(
-    '/{answer_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    '/{answer_id}'
 )
 async def delete_answer(
         answer_service: Annotated[AnswerService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         answer_id: int
 ) -> bool:
-    return await answer_service.delete_answer(answer_id)
+    return await answer_service.delete_answer(
+        answer_id,
+        user.id
+    )

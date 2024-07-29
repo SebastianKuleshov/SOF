@@ -5,6 +5,7 @@ from sqlalchemy.orm import joinedload
 from app.answers.models import AnswerModel
 from app.common.repositories.base_repository import BaseRepository
 from app.questions.models import QuestionModel
+from app.questions.schemas import QuestionOutSchema
 from app.questions.schemas import QuestionWithUserOutSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema
 
@@ -12,30 +13,17 @@ from app.questions.schemas import QuestionWithUserOutSchema, \
 class QuestionRepository(BaseRepository):
     model = QuestionModel
 
-    async def check_question_exists(
+    async def get_question_if_exists(
             self,
             question_id: int
-    ) -> bool:
+    ) -> QuestionOutSchema | None:
         question = await self.get_by_id(question_id)
         if not question:
             raise HTTPException(
                 status_code=404,
                 detail='Question not found'
             )
-        return True
-
-    async def get_by_id_with_user(
-            self,
-            question_id: int
-    ) -> QuestionWithUserOutSchema | None:
-        stmt = (select(self.model)
-                .options(joinedload(self.model.user))
-                .where(question_id == self.model.id)
-                )
-        question = await self.session.scalar(stmt)
-        return QuestionWithUserOutSchema.model_validate(
-            question
-        ) if question else None
+        return QuestionOutSchema.model_validate(question)
 
     async def get_by_id_with_joins(
             self,

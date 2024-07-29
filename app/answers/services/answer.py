@@ -50,15 +50,27 @@ class AnswerService:
     async def update_answer(
             self,
             answer_id: int,
+            user_id: int,
             answer_schema: AnswerUpdateSchema
     ) -> AnswerWithUserOutSchema:
-        await self.answer_repository.check_answer_exists(answer_id)
+        answer = await self.answer_repository.get_answer_if_exists(answer_id)
+        if answer.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to update this answer'
+            )
         await self.answer_repository.update(answer_id, answer_schema)
         return await self.answer_repository.get_by_id_with_user(answer_id)
 
     async def delete_answer(
             self,
-            answer_id: int
+            answer_id: int,
+            user_id: int
     ) -> bool:
-        await self.answer_repository.check_answer_exists(answer_id)
+        answer = await self.answer_repository.get_answer_if_exists(answer_id)
+        if answer.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to delete this answer'
+            )
         return await self.answer_repository.delete(answer_id)
