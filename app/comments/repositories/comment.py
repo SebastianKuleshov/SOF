@@ -11,8 +11,7 @@ class CommentRepository(BaseRepository):
     model = CommentModel
 
     async def check_comment_exists(self, comment_id: int) -> bool:
-        stmt = select(self.model).where(comment_id == self.model.id)
-        comment = await self.session.scalar(stmt)
+        comment = await self.get_by_id(comment_id)
         if not comment:
             raise HTTPException(
                 status_code=404,

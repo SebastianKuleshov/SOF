@@ -64,16 +64,17 @@ async def get_user_questions(
 
 @router.put(
     '/{question_id}',
-    response_model=question_schemas.QuestionOutSchema,
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=question_schemas.QuestionOutSchema
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
         question_id: int,
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question: question_schemas.QuestionUpdateSchema
 ):
     return await question_service.update_question(
         question_id,
+        user.id,
         question
     )
 

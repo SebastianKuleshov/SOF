@@ -61,6 +61,7 @@ class QuestionService:
     async def update_question(
             self,
             question_id: int,
+            user_id: int,
             question_schema: QuestionUpdateSchema
     ) -> QuestionOutSchema:
         await self.question_repository.check_question_exists(question_id)

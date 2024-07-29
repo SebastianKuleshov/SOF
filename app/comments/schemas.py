@@ -1,5 +1,4 @@
-from pydantic import BaseModel, ConfigDict, model_validator, model_serializer, \
-    Field
+from pydantic import BaseModel, ConfigDict, model_validator, Field
 from typing_extensions import Self
 
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
@@ -43,24 +42,6 @@ class CommentOutSchema(CommentBaseSchema, CreatedAtUpdatedAtMixin):
     question_id: int | None
     answer_id: int | None
 
-    @model_serializer(when_used='json')
-    def to_json(self):
-        return {
-            'id': self.id,
-            'body': self.body,
-            'user_id': self.user_id,
-            'question_id': self.question_id,
-            'answer_id': self.answer_id,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
-        }
-
 
 class CommentWithUserOutSchema(CommentOutSchema):
     user: UserOutSchema
-
-    @model_serializer(when_used='json')
-    def to_json(self):
-        base_json = super().to_json()
-        base_json['user'] = self.user
-        return base_json
