@@ -1,29 +1,15 @@
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
 from app.common.repositories.base_repository import BaseRepository
 from app.questions.models import QuestionModel
-from app.questions.schemas import QuestionOutSchema
 from app.questions.schemas import QuestionWithUserOutSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema
 
 
 class QuestionRepository(BaseRepository):
     model = QuestionModel
-
-    async def get_question_if_exists(
-            self,
-            question_id: int
-    ) -> QuestionOutSchema | None:
-        question = await self.get_by_id(question_id)
-        if not question:
-            raise HTTPException(
-                status_code=404,
-                detail='Question not found'
-            )
-        return QuestionOutSchema.model_validate(question)
 
     async def get_by_id_with_joins(
             self,

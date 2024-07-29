@@ -33,6 +33,16 @@ class BaseRepository(ABC):
 
         return entities.all()
 
+    async def get_entity_if_exists(self, entity_id: int) -> MODEL | None:
+        entity = await self.get_by_id(entity_id)
+        if not entity:
+            entity_name = self.model.__name__.replace('Model', '')
+            raise HTTPException(
+                status_code=404,
+                detail=f'{entity_name} not found'
+            )
+        return entity
+
     async def create(self, entity: SCHEMA) -> MODEL:
         entity_model = self.model(**entity.model_dump())
         self.session.add(entity_model)
