@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy.orm import joinedload
 
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
@@ -37,8 +38,16 @@ class QuestionService:
             self,
             question_id: int
     ) -> QuestionWithJoinsOutSchema:
+        join_options = [
+            joinedload(self.question_repository.model.user),
+            joinedload(self.question_repository.model.answers).joinedload(
+                self.answer_repository.model.comments
+            ),
+            joinedload(self.question_repository.model.comments)
+        ]
         question = await self.question_repository.get_by_id_with_joins(
-            question_id
+            question_id,
+            join_options
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
@@ -49,14 +58,33 @@ class QuestionService:
             skip: int = 0,
             limit: int = 100
     ):
-        return await self.question_repository.get_list_with_joins(skip, limit)
+        join_options = [
+            joinedload(self.question_repository.model.user),
+            joinedload(self.question_repository.model.answers)
+        ]
+        return await self.question_repository.get_multi_with_joins(
+            join_options,
+            {},
+            skip,
+            limit
+        )
 
     async def get_user_questions(
             self,
             user_id: int
     ) -> list[QuestionWithUserOutSchema]:
         await self.user_repository.get_entity_if_exists(user_id)
-        return await self.question_repository.get_user_questions(user_id)
+        join_options = [
+            joinedload(self.question_repository.model.user)
+        ]
+        questions = await self.question_repository.get_multi_with_joins(
+            join_options,
+            {'user_id': user_id}
+        )
+        return [
+            QuestionWithUserOutSchema.model_validate(question)
+            for question in questions
+        ]
 
     async def update_question(
             self,
@@ -77,7 +105,17 @@ class QuestionService:
             )
         await self.question_repository.update(question_id, question_schema)
         await self.question_repository.expire_session_for_all()
-        return await self.question_repository.get_by_id_with_joins(question_id)
+        join_options = [
+            joinedload(self.question_repository.model.user),
+            joinedload(self.question_repository.model.answers).joinedload(
+                self.answer_repository.model.comments
+            ),
+            joinedload(self.question_repository.model.comments)
+        ]
+        return await self.question_repository.get_by_id_with_joins(
+            question_id,
+            join_options
+        )
 
     async def delete_question(
             self,

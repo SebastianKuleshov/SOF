@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import Annotated, Sequence, List
 
 from fastapi import HTTPException, Depends
-from sqlalchemy import select, update, insert, delete, or_, Select
+from sqlalchemy import select, update, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.strategy_options import _AbstractLoad
 
 from app.common.types import MODEL, SCHEMA
 from app.core.adapters.postgres.postgres_adapter import get_session
@@ -19,21 +20,71 @@ class BaseRepository(ABC):
         Usage:: model = UserModel """
         return MODEL
 
-    def __init__(self, session: Annotated[AsyncSession, Depends(get_session)]) -> None:
+    def __init__(
+            self,
+            session: Annotated[AsyncSession, Depends(get_session)]
+    ) -> None:
         self.session = session
 
-    async def get_one(self, filters: dict) -> MODEL | None:
-        return await self.session.scalar(select(self.model).filter_by(**filters))
+    async def get_one(
+            self,
+            filters: dict
+    ) -> MODEL | None:
+        return await self.session.scalar(
+            select(self.model).filter_by(**filters)
+        )
 
-    async def get_by_id(self, entity_id: int) -> MODEL | None:
+    async def get_one_with_joins(
+            self,
+            filters: dict,
+            joins: list[_AbstractLoad]
+    ) -> MODEL | None:
+        stmt = select(self.model).options(*joins)
+        return await self.session.scalar(stmt.filter_by(**filters))
+
+    async def get_by_id(
+            self,
+            entity_id: int
+    ) -> MODEL | None:
         return await self.session.get(self.model, entity_id)
 
-    async def get_multi(self, offset: int = 0, limit: int = 100) -> Sequence[MODEL]:
-        entities = await self.session.scalars(select(self.model).offset(offset).limit(limit))
+    async def get_by_id_with_joins(
+            self,
+            entity_id: int,
+            joins: list[_AbstractLoad]
+    ) -> MODEL | None:
+        stmt = select(self.model).options(*joins)
+        return await self.session.scalar(stmt.filter_by(id=entity_id))
+
+    async def get_multi(
+            self,
+            offset: int = 0,
+            limit: int = 100
+    ) -> Sequence[MODEL]:
+        entities = await self.session.scalars(
+            select(self.model).offset(offset).limit(limit)
+        )
 
         return entities.all()
 
-    async def get_entity_if_exists(self, entity_id: int) -> MODEL | None:
+    async def get_multi_with_joins(
+            self,
+            joins: list[_AbstractLoad],
+            filters: dict = None,
+            offset: int = 0,
+            limit: int = 100
+    ) -> Sequence[MODEL]:
+        stmt = select(self.model).options(*joins)
+        if filters:
+            stmt = stmt.filter_by(**filters)
+        entities = await self.session.scalars(stmt.offset(offset).limit(limit))
+
+        return entities.all()
+
+    async def get_entity_if_exists(
+            self,
+            entity_id: int
+    ) -> MODEL | None:
         entity = await self.get_by_id(entity_id)
         if not entity:
             entity_name = self.model.__name__.replace('Model', '')
@@ -43,7 +94,10 @@ class BaseRepository(ABC):
             )
         return entity
 
-    async def create(self, entity: SCHEMA) -> MODEL:
+    async def create(
+            self,
+            entity: SCHEMA
+    ) -> MODEL:
         entity_model = self.model(**entity.model_dump())
         self.session.add(entity_model)
         await self.session.commit()
@@ -51,19 +105,32 @@ class BaseRepository(ABC):
 
         return entity_model
 
-    async def create_many(self, entities: List[SCHEMA]) -> Sequence[MODEL]:
-        entities_db = await self.session.scalars(insert(self.model).returning(self.model), entities)
+    async def create_many(
+            self,
+            entities: List[SCHEMA]
+    ) -> Sequence[MODEL]:
+        entities_db = await self.session.scalars(
+            insert(self.model).returning(self.model), entities
+        )
         await self.session.commit()
 
         return entities_db.all()
 
-    async def update(self, entity_id: int, entity: SCHEMA | dict, exclude_unset: bool = True) -> SCHEMA:
+    async def update(
+            self,
+            entity_id: int,
+            entity: SCHEMA | dict,
+            exclude_unset: bool = True
+    ) -> SCHEMA:
         stmt = (
             update(self.model).
             where(self.model.id == entity_id)
         )
-        stmt = stmt.values(**entity) if isinstance(entity, dict) else stmt.values(
-            **entity.model_dump(exclude_unset=exclude_unset))
+        stmt = stmt.values(**entity) if isinstance(
+            entity, dict
+        ) else stmt.values(
+            **entity.model_dump(exclude_unset=exclude_unset)
+        )
         result = await self.session.execute(stmt)
         if result is None:
             raise HTTPException(404, "Entity not found.")
@@ -72,14 +139,22 @@ class BaseRepository(ABC):
 
         return entity
 
-    async def update_many(self, entities: List[SCHEMA]) -> bool:
+    async def update_many(
+            self,
+            entities: List[SCHEMA]
+    ) -> bool:
         for entity in entities:
             await self.update(entity.id, entity)
 
         return True
 
-    async def soft_delete(self, entity_id: int) -> bool:
-        stmt = update(self.model).where(self.model.id == entity_id).values({"deleted_at": datetime.now()})
+    async def soft_delete(
+            self,
+            entity_id: int
+    ) -> bool:
+        stmt = update(self.model).where(self.model.id == entity_id).values(
+            {"deleted_at": datetime.now()}
+        )
         result = await self.session.execute(stmt)
         if result is None:
             raise HTTPException(404, "Entity not found.")
@@ -87,23 +162,33 @@ class BaseRepository(ABC):
 
         return result == 1
 
-    async def delete(self, entity_id: int) -> bool:
+    async def delete(
+            self,
+            entity_id: int
+    ) -> bool:
         stmt = delete(self.model).where(self.model.id == entity_id)
         await self.session.execute(stmt)
         await self.session.commit()
 
         return True
 
-    async def delete_many(self, entity_ids: List[int]) -> bool:
+    async def delete_many(
+            self,
+            entity_ids: List[int]
+    ) -> bool:
         stmt = delete(self.model).where(self.model.id.in_(entity_ids))
         await self.session.execute(stmt)
         await self.session.commit()
 
         return True
 
-    async def expire_session_for_entity(self, model: MODEL) -> None:
+    async def expire_session_for_entity(
+            self,
+            model: MODEL
+    ) -> None:
         return self.session.expire(model)
 
-    async def expire_session_for_all(self) -> None:
+    async def expire_session_for_all(
+            self
+    ) -> None:
         return self.session.expire_all()
-

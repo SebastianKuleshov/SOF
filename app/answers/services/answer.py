@@ -2,10 +2,12 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from app.answers.repositories import AnswerRepository
 from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
-    AnswerWithUserOutSchema, AnswerWithJoinsOutSchema, AnswerCreatePayloadSchema, \
+    AnswerWithUserOutSchema, AnswerWithJoinsOutSchema, \
+    AnswerCreatePayloadSchema, \
     AnswerOutSchema
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
@@ -46,13 +48,20 @@ class AnswerService:
             self,
             answer_id: int
     ) -> AnswerWithJoinsOutSchema:
-        answer = await self.answer_repository.get_by_id_with_joins(answer_id)
+        join_options = [
+            joinedload(self.answer_repository.model.user),
+            joinedload(self.answer_repository.model.question)
+        ]
+        answer = await self.answer_repository.get_by_id_with_joins(
+            answer_id,
+            join_options
+        )
         if not answer:
             raise HTTPException(
                 status_code=404,
                 detail='Answer not found'
             )
-        return answer
+        return AnswerWithJoinsOutSchema.model_validate(answer)
 
     async def update_answer(
             self,
@@ -67,7 +76,15 @@ class AnswerService:
                 detail='You are not allowed to update this answer'
             )
         await self.answer_repository.update(answer_id, answer_schema)
-        return await self.answer_repository.get_by_id_with_user(answer_id)
+        await self.answer_repository.expire_session_for_all()
+        join_options = [
+            joinedload(self.answer_repository.model.user)
+        ]
+        answer = await self.answer_repository.get_by_id_with_joins(
+            answer_id,
+            join_options
+        )
+        return AnswerWithUserOutSchema.model_validate(answer)
 
     async def delete_answer(
             self,
