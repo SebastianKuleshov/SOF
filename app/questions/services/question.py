@@ -7,7 +7,7 @@ from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
     QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema, \
-    QuestionWithJoinsOutSchema
+    QuestionWithJoinsOutSchema, QuestionForListOutSchema
 from app.users.repositories import UserRepository
 
 
@@ -57,17 +57,26 @@ class QuestionService:
             self,
             skip: int = 0,
             limit: int = 100
-    ):
+    ) -> list[QuestionForListOutSchema]:
         join_options = [
             joinedload(self.question_repository.model.user),
             joinedload(self.question_repository.model.answers)
         ]
-        return await self.question_repository.get_multi_with_joins(
+        questions = await self.question_repository.get_multi_with_joins(
             join_options,
             {},
             skip,
             limit
         )
+        return [
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers)
+                }
+            )
+            for question in questions
+        ]
 
     async def get_user_questions(
             self,

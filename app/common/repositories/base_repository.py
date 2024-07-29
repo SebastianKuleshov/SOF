@@ -78,8 +78,8 @@ class BaseRepository(ABC):
         if filters:
             stmt = stmt.filter_by(**filters)
         entities = await self.session.scalars(stmt.offset(offset).limit(limit))
-
-        return entities.all()
+        entities = entities.unique().all()
+        return entities
 
     async def get_entity_if_exists(
             self,
