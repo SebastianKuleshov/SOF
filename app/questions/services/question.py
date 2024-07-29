@@ -52,7 +52,7 @@ class QuestionService:
             self,
             user_id: int
     ) -> list[QuestionWithUserOutSchema]:
-        await self.user_repository.check_user_exists(user_id)
+        await self.user_repository.get_user_if_exists(user_id)
         return await self.question_repository.get_user_questions(user_id)
 
     async def update_question(
