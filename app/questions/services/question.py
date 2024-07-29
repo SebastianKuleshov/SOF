@@ -55,7 +55,7 @@ class QuestionService:
             self,
             user_id: int
     ) -> list[QuestionWithUserOutSchema]:
-        await self.user_repository.get_user_if_exists(user_id)
+        await self.user_repository.get_entity_if_exists(user_id)
         return await self.question_repository.get_user_questions(user_id)
 
     async def update_question(
@@ -64,10 +64,10 @@ class QuestionService:
             user_id: int,
             question_schema: QuestionUpdateSchema
     ) -> QuestionOutSchema:
-        question = await self.question_repository.get_question_if_exists(
+        question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        await self.answer_repository.get_answer_if_exists(
+        await self.answer_repository.get_entity_if_exists(
             question_schema.accepted_answer_id
         )
         if question.user_id != user_id:
@@ -84,7 +84,7 @@ class QuestionService:
             question_id: int,
             user_id: int
     ) -> bool:
-        question = await self.question_repository.get_question_if_exists(
+        question = await self.question_repository.get_entity_if_exists(
             question_id
         )
         if question.user_id != user_id:

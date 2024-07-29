@@ -36,7 +36,7 @@ class UserService:
             requesting_user_id: int,
             user_schema: UserUpdateSchema
     ) -> UserUpdateSchema:
-        user = await self.user_repository.get_user_if_exists(target_user_id)
+        user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
             raise HTTPException(
                 status_code=403,
@@ -61,7 +61,7 @@ class UserService:
             target_user_id: int,
             requesting_user_id: int
     ) -> bool:
-        user = await self.user_repository.get_user_if_exists(target_user_id)
+        user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
             raise HTTPException(
                 status_code=403,

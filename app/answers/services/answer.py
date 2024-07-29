@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from app.answers.repositories import AnswerRepository
 from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
@@ -30,10 +31,16 @@ class AnswerService:
             **answer_schema.model_dump(),
             user_id=user_id
         )
-        await self.question_repository.check_question_exists(
+        await self.question_repository.get_entity_if_exists(
             answer_schema.question_id
         )
-        return await self.answer_repository.create(answer_schema)
+        try:
+            return await self.answer_repository.create(answer_schema)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=400,
+                detail='You have already answered this question'
+            )
 
     async def get_answer(
             self,
@@ -53,7 +60,7 @@ class AnswerService:
             user_id: int,
             answer_schema: AnswerUpdateSchema
     ) -> AnswerWithUserOutSchema:
-        answer = await self.answer_repository.get_answer_if_exists(answer_id)
+        answer = await self.answer_repository.get_entity_if_exists(answer_id)
         if answer.user_id != user_id:
             raise HTTPException(
                 status_code=403,
@@ -67,7 +74,7 @@ class AnswerService:
             answer_id: int,
             user_id: int
     ) -> bool:
-        answer = await self.answer_repository.get_answer_if_exists(answer_id)
+        answer = await self.answer_repository.get_entity_if_exists(answer_id)
         if answer.user_id != user_id:
             raise HTTPException(
                 status_code=403,
