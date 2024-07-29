@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import Depends
-from pydantic import EmailStr
+from fastapi import Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 
-from app.dependencies import get_password_hash, verify_password
-from app.users.models import UserModel
+from app.dependencies import get_password_hash
 from app.users.repositories import UserRepository
-from app.users.schemas import UserCreateSchema, UserOutSchema
+from app.users.schemas import UserCreateSchema, UserOutSchema, UserUpdateSchema
 
 
 class UserService:
@@ -23,3 +22,23 @@ class UserService:
         user.password = await get_password_hash(user.password)
         user_model = await self.user_repository.create(user)
         return UserOutSchema.model_validate(user_model)
+
+    async def update_user(
+            self,
+            user_id: int,
+            user_schema: UserUpdateSchema
+    ) -> UserUpdateSchema:
+        await self.user_repository.check_user_exists(user_id)
+
+        try:
+            user_model = await self.user_repository.update(
+                user_id,
+                user_schema
+            )
+        except IntegrityError:
+            raise HTTPException(
+                status_code=400,
+                detail='Email already exists'
+            )
+
+        return UserUpdateSchema.model_validate(user_model)
