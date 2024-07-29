@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.auth.services import AuthService
-from app.questions import schemas
+from app.questions import schemas as question_schemas
 from app.questions.services import QuestionService
 
 router = APIRouter(
@@ -14,11 +14,11 @@ router = APIRouter(
 
 @router.post(
     '/',
-    response_model=schemas.QuestionOutSchema
+    response_model=question_schemas.QuestionOutSchema
 )
 async def create_question(
         question_service: Annotated[QuestionService, Depends()],
-        question: schemas.QuestionBaseSchema,
+        question: question_schemas.QuestionBaseSchema,
         user: Annotated[AuthService.get_user_from_jwt, Depends()]
 ):
     return await question_service.create_question(question, user.id)
@@ -26,19 +26,22 @@ async def create_question(
 
 @router.get(
     '/',
-    response_model=list[schemas.QuestionOutSchema]
+    response_model=list[question_schemas.QuestionForListOutSchema]
 )
 async def get_questions(
         question_service: Annotated[QuestionService, Depends()],
         skip: int = 0,
         limit: int = 100
 ):
-    return await question_service.question_repository.get_multi(skip, limit)
+    return await question_service.get_questions(
+        skip,
+        limit
+    )
 
 
 @router.get(
     '/{question_id}',
-    response_model=schemas.QuestionWithUserOutSchema
+    response_model=question_schemas.QuestionWithJoinsOutSchema
 )
 async def get_question(
         question_service: Annotated[QuestionService, Depends()],
@@ -49,27 +52,25 @@ async def get_question(
 
 @router.get(
     '/user/{user_id}',
-    response_model=list[schemas.QuestionWithUserOutSchema],
+    response_model=list[question_schemas.QuestionWithUserOutSchema],
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 async def get_user_questions(
         question_service: Annotated[QuestionService, Depends()],
         user_id: int
 ):
-    return await question_service.question_repository.get_user_questions(
-        user_id
-    )
+    return await question_service.get_user_questions(user_id)
 
 
 @router.put(
     '/{question_id}',
-    response_model=schemas.QuestionWithUserOutSchema
+    response_model=question_schemas.QuestionOutSchema
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
-        question: schemas.QuestionUpdateSchema
+        question: question_schemas.QuestionUpdateSchema
 ):
     return await question_service.update_question(
         question_id,

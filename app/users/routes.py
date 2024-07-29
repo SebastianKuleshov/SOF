@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from app.auth.services import AuthService
 from app.users import schemas as user_schemas
 from app.users.services import UserService
-from app.auth.services import AuthService
 
 router = APIRouter(
     prefix='/users',
@@ -59,26 +59,30 @@ async def get_current_user(
 
 @router.put(
     '/{user_id}',
-    response_model=user_schemas.UserUpdateSchema,
-    dependencies=[Depends(AuthService.get_user_from_jwt)],
+    response_model=user_schemas.UserUpdateSchema
 )
 async def update_user(
         user_service: Annotated[UserService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         user_id: int,
         user_schema: user_schemas.UserUpdateSchema
 ):
     return await user_service.update_user(
         user_id,
+        user.id,
         user_schema
     )
 
 
 @router.delete(
-    '/{user_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    '/{user_id}'
 )
 async def delete_current_user(
         user_service: Annotated[UserService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         user_id: int
 ) -> bool:
-    return await user_service.user_repository.delete(user_id)
+    return await user_service.delete_user(
+        user_id,
+        user.id
+    )

@@ -1,7 +1,6 @@
-import datetime
 from typing import Text
 
-from sqlalchemy import func, DateTime, ForeignKey
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
@@ -25,3 +24,8 @@ class QuestionModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload'
     )
 
+    answers: Mapped[list['AnswerModel']] = relationship(
+        'AnswerModel',
+        back_populates='question',
+        lazy='noload'
+    )

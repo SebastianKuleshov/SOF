@@ -1,4 +1,3 @@
-import datetime
 from typing import Text
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -33,3 +32,19 @@ class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
 class QuestionWithUserOutSchema(QuestionOutSchema):
     user: UserOutSchema
 
+
+class QuestionForListOutSchema(QuestionOutSchema):
+    user: UserOutSchema
+    answer_count: int
+
+
+class AnswerOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
+    id: int
+    user_id: int
+    question_id: int
+    body: Text = Field(min_length=30, max_length=3500)
+
+
+class QuestionWithJoinsOutSchema(QuestionOutSchema):
+    user: UserOutSchema
+    answers: list[AnswerOutSchema] | None

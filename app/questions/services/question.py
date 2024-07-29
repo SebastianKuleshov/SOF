@@ -4,7 +4,8 @@ from fastapi import Depends, HTTPException
 
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
-    QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema
+    QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema, \
+    QuestionWithJoinsOutSchema
 from app.users.repositories import UserRepository
 
 
@@ -32,13 +33,27 @@ class QuestionService:
     async def get_question(
             self,
             question_id: int
-    ) -> QuestionWithUserOutSchema:
-        question = await self.question_repository.get_question_by_id(
+    ) -> QuestionWithJoinsOutSchema:
+        question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
         return question
+
+    async def get_questions(
+            self,
+            skip: int = 0,
+            limit: int = 100
+    ):
+        return await self.question_repository.get_list_with_joins(skip, limit)
+
+    async def get_user_questions(
+            self,
+            user_id: int
+    ) -> list[QuestionWithUserOutSchema]:
+        await self.user_repository.get_user_if_exists(user_id)
+        return await self.question_repository.get_user_questions(user_id)
 
     async def update_question(
             self,

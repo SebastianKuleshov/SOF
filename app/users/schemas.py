@@ -1,8 +1,8 @@
 import re
-from typing_extensions import Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, EmailStr, \
     model_validator, Field
+from typing_extensions import Self
 
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 
