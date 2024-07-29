@@ -3,24 +3,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
-from app.answers.schemas import AnswerWithUserSchema, AnswerWithJoinsOutSchema
+from app.answers.schemas import AnswerWithUserSchema, AnswerWithJoinsOutSchema, \
+    AnswerOutSchema
 from app.common.repositories.base_repository import BaseRepository
 
 
 class AnswerRepository(BaseRepository):
     model = AnswerModel
 
-    async def check_answer_exists(
+    async def get_answer_if_exists(
             self,
             answer_id: int
-    ) -> bool:
+    ) -> AnswerOutSchema | None:
         answer = await self.get_by_id(answer_id)
         if not answer:
             raise HTTPException(
                 status_code=404,
                 detail='Answer not found'
             )
-        return True
+        return AnswerOutSchema.model_validate(answer)
 
     async def get_by_id_with_user(
             self,

@@ -12,6 +12,18 @@ from app.questions.schemas import QuestionWithUserOutSchema, \
 class QuestionRepository(BaseRepository):
     model = QuestionModel
 
+    async def get_question_if_exists(
+            self,
+            question_id: int
+    ) -> QuestionOutSchema | None:
+        question = await self.get_by_id(question_id)
+        if not question:
+            raise HTTPException(
+                status_code=404,
+                detail='Question not found'
+            )
+        return QuestionOutSchema.model_validate(question)
+
     async def get_by_id_with_joins(
             self,
             question_id: int
@@ -49,18 +61,6 @@ class QuestionRepository(BaseRepository):
             )
             for question in questions
         ]
-
-    async def get_question_if_exists(
-            self,
-            question_id: int
-    ) -> QuestionOutSchema | None:
-        question = await self.get_by_id(question_id)
-        if not question:
-            raise HTTPException(
-                status_code=404,
-                detail='Question not found'
-            )
-        return QuestionOutSchema.model_validate(question)
 
     async def get_user_questions(
             self,
