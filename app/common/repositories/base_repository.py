@@ -5,7 +5,6 @@ from typing import Annotated, Sequence, List
 from fastapi import HTTPException, Depends
 from sqlalchemy import select, update, insert, delete, Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.strategy_options import _AbstractLoad
 
 from app.common.types import MODEL, SCHEMA
 from app.core.adapters.postgres.postgres_adapter import get_session

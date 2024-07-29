@@ -1,8 +1,8 @@
-"""impelement tag model
+"""implement tag model
 
-Revision ID: 46d44144a90d
+Revision ID: 4596d6a93138
 Revises: 59ac529361cc
-Create Date: 2024-07-29 15:15:52.965229
+Create Date: 2024-07-29 16:28:08.540758
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '46d44144a90d'
+revision: str = '4596d6a93138'
 down_revision: Union[str, None] = '59ac529361cc'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

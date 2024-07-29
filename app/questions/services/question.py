@@ -1,12 +1,11 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
-from sqlalchemy.orm import joinedload
 
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
-    QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema, \
+    QuestionOutSchema, QuestionBaseSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema
 from app.users.repositories import UserRepository
 
