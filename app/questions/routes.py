@@ -63,26 +63,30 @@ async def get_user_questions(
 
 @router.put(
     '/{question_id}',
-    response_model=schemas.QuestionWithUserOutSchema,
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=schemas.QuestionWithUserOutSchema
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
         question: schemas.QuestionUpdateSchema
 ):
     return await question_service.update_question(
         question_id,
+        user.id,
         question
     )
 
 
 @router.delete(
-    '/{question_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    '/{question_id}'
 )
 async def delete_question(
         question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int
 ) -> bool:
-    return await question_service.delete_question(question_id)
+    return await question_service.delete_question(
+        question_id,
+        user.id
+    )

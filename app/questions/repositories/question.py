@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.common.repositories.base_repository import BaseRepository
-from app.questions.schemas import QuestionWithUserOutSchema
+from app.questions.schemas import QuestionWithUserOutSchema, QuestionOutSchema
 from app.questions.models import QuestionModel
 
 
@@ -23,17 +23,17 @@ class QuestionRepository(BaseRepository):
             question
         ) if question else None
 
-    async def check_question_exists(
+    async def get_question_if_exists(
             self,
             question_id: int
-    ) -> bool:
+    ) -> QuestionOutSchema | None:
         question = await self.get_by_id(question_id)
         if not question:
             raise HTTPException(
                 status_code=404,
                 detail='Question not found'
             )
-        return True
+        return QuestionOutSchema.model_validate(question)
 
     async def get_user_questions(
             self,
