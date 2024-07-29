@@ -15,8 +15,7 @@ class QuestionRepository(BaseRepository):
             self,
             question_id: int
     ) -> bool:
-        stmt = select(self.model).where(question_id == self.model.id)
-        question = await self.session.scalar(stmt)
+        question = await self.get_by_id(question_id)
         if not question:
             raise HTTPException(
                 status_code=404,
