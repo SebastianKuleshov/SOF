@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated, Sequence, List
 
 from fastapi import HTTPException, Depends
-from sqlalchemy import select, update, insert, delete
+from sqlalchemy import select, update, insert, delete, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.strategy_options import _AbstractLoad
 
@@ -26,6 +26,9 @@ class BaseRepository(ABC):
     ) -> None:
         self.session = session
 
+    def get_default_stmt(self) -> Select:
+        return select(self.model)
+
     async def get_one(
             self,
             filters: dict
@@ -36,10 +39,9 @@ class BaseRepository(ABC):
 
     async def get_one_with_joins(
             self,
-            filters: dict,
-            joins: list[_AbstractLoad]
+            filters: dict
     ) -> MODEL | None:
-        stmt = select(self.model).options(*joins)
+        stmt = self.get_default_stmt()
         return await self.session.scalar(stmt.filter_by(**filters))
 
     async def get_by_id(
@@ -50,10 +52,9 @@ class BaseRepository(ABC):
 
     async def get_by_id_with_joins(
             self,
-            entity_id: int,
-            joins: list[_AbstractLoad]
+            entity_id: int
     ) -> MODEL | None:
-        stmt = select(self.model).options(*joins)
+        stmt = self.get_default_stmt()
         return await self.session.scalar(stmt.filter_by(id=entity_id))
 
     async def get_multi(
@@ -69,12 +70,11 @@ class BaseRepository(ABC):
 
     async def get_multi_with_joins(
             self,
-            joins: list[_AbstractLoad],
             filters: dict = None,
             offset: int = 0,
             limit: int = 100
     ) -> Sequence[MODEL]:
-        stmt = select(self.model).options(*joins)
+        stmt = self.get_default_stmt()
         if filters:
             stmt = stmt.filter_by(**filters)
         entities = await self.session.scalars(stmt.offset(offset).limit(limit))
