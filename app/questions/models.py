@@ -29,3 +29,9 @@ class QuestionModel(CreatedAtUpdatedAtMixin, Base):
         back_populates='question',
         lazy='noload'
     )
+
+    comments: Mapped[list['CommentModel']] = relationship(
+        'CommentModel',
+        back_populates='question',
+        lazy='noload'
+    )

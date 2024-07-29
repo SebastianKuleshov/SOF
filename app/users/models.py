@@ -28,3 +28,10 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload',
         cascade='all, delete'
     )
+
+    comments: Mapped[list['CommentModel']] = relationship(
+        'CommentModel',
+        back_populates='user',
+        lazy='noload',
+        cascade='all, delete'
+    )

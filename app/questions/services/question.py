@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 
+from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
     QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema, \
@@ -13,10 +14,12 @@ class QuestionService:
     def __init__(
             self,
             question_repository: Annotated[QuestionRepository, Depends()],
-            user_repository: Annotated[UserRepository, Depends()]
+            user_repository: Annotated[UserRepository, Depends()],
+            answer_repository: Annotated[AnswerRepository, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
+        self.answer_repository = answer_repository
 
     async def create_question(
             self,
@@ -60,9 +63,12 @@ class QuestionService:
             question_id: int,
             user_id: int,
             question_schema: QuestionUpdateSchema
-    ) -> QuestionWithUserOutSchema:
+    ) -> QuestionOutSchema:
         question = await self.question_repository.get_question_if_exists(
             question_id
+        )
+        await self.answer_repository.get_answer_if_exists(
+            question_schema.accepted_answer_id
         )
         if question.user_id != user_id:
             raise HTTPException(
@@ -71,7 +77,7 @@ class QuestionService:
             )
         await self.question_repository.update(question_id, question_schema)
         await self.question_repository.expire_session_for_all()
-        return await self.question_repository.get_question_by_id(question_id)
+        return await self.question_repository.get_by_id_with_joins(question_id)
 
     async def delete_question(
             self,

@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
-    AnswerWithUserSchema, AnswerWithJoinsOutSchema, AnswerCreatePayloadSchema, \
+    AnswerWithUserOutSchema, AnswerWithJoinsOutSchema, AnswerCreatePayloadSchema, \
     AnswerOutSchema
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
@@ -52,7 +52,7 @@ class AnswerService:
             answer_id: int,
             user_id: int,
             answer_schema: AnswerUpdateSchema
-    ) -> AnswerWithUserSchema:
+    ) -> AnswerWithUserOutSchema:
         answer = await self.answer_repository.get_answer_if_exists(answer_id)
         if answer.user_id != user_id:
             raise HTTPException(

@@ -2,8 +2,8 @@ from typing import Text
 
 from pydantic import BaseModel, Field, ConfigDict
 
+from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
-from app.questions.schemas import QuestionOutSchema
 from app.users.schemas import UserOutSchema
 
 
@@ -31,8 +31,22 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
     question_id: int
 
 
-class AnswerWithUserSchema(AnswerOutSchema):
+class AnswerWithUserOutSchema(AnswerOutSchema):
     user: UserOutSchema
+
+
+class AnswerWithCommentsOutSchema(AnswerOutSchema):
+    comments: list[CommentOutSchema]
+
+
+class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
+    id: int
+    title: str
+    body: Text
+    user_id: int
+    accepted_answer_id: int | None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnswerWithJoinsOutSchema(AnswerOutSchema):

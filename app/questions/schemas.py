@@ -1,7 +1,9 @@
 from typing import Text
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
+from app.answers.schemas import AnswerOutSchema, AnswerWithCommentsOutSchema
+from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 from app.users.schemas import UserOutSchema
 
@@ -38,13 +40,7 @@ class QuestionForListOutSchema(QuestionOutSchema):
     answer_count: int
 
 
-class AnswerOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
-    id: int
-    user_id: int
-    question_id: int
-    body: Text = Field(min_length=30, max_length=3500)
-
-
 class QuestionWithJoinsOutSchema(QuestionOutSchema):
     user: UserOutSchema
-    answers: list[AnswerOutSchema] | None
+    answers: list[AnswerWithCommentsOutSchema] | None
+    comments: list[CommentOutSchema] | None
