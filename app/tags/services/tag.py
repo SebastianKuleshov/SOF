@@ -15,23 +15,23 @@ class TagService:
 
     async def create_tag(
             self,
-            tag: TagBaseSchema
+            tag_schema: TagBaseSchema
     ) -> TagOutSchema:
-        tag = await self.tag_repository.get_one({'name': tag.name})
+        tag = await self.tag_repository.get_one({'name': tag_schema.name})
         if tag:
             raise HTTPException(
                 status_code=400,
                 detail='Tag already exists'
             )
-        return await self.tag_repository.create(tag)
+        return await self.tag_repository.create(tag_schema)
 
     async def update_tag(
             self,
             tag_id: int,
-            tag: TagUpdateSchema
+            tag_schema: TagUpdateSchema
     ) -> TagOutSchema:
         await self.tag_repository.get_entity_if_exists(tag_id)
-        tag = await self.tag_repository.update(tag_id, tag)
+        tag = await self.tag_repository.update(tag_id, tag_schema)
         return TagOutSchema.model_validate(tag)
 
     async def delete_tag(

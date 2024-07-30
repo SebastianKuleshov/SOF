@@ -53,7 +53,7 @@ async def update_tag(
         tag_id: int,
         tag: tag_schemas.TagUpdateSchema
 ):
-    return await tag_service.tag_repository.update(tag_id, tag)
+    return await tag_service.update_tag(tag_id, tag)
 
 
 @router.delete(
@@ -64,4 +64,4 @@ async def delete_tag(
         tag_service: Annotated[TagService, Depends()],
         tag_id: int
 ):
-    return await tag_service.tag_repository.delete(tag_id)
+    return await tag_service.delete_tag(tag_id)
