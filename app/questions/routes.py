@@ -25,7 +25,7 @@ async def create_question(
 
 
 @router.post(
-    '/{question_id}/',
+    '/{question_id}',
     response_model=question_schemas.QuestionWithJoinsOutSchema
 )
 async def attach_tags_to_question(
@@ -38,6 +38,23 @@ async def attach_tags_to_question(
         question_id,
         user.id,
         tags
+    )
+
+
+@router.post(
+    '/votes/{question_id}',
+    response_model=question_schemas.QuestionWithJoinsOutSchema
+)
+async def vote_question(
+        question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int,
+        is_upvote: bool
+):
+    return await question_service.vote_question(
+        question_id,
+        user.id,
+        is_upvote
     )
 
 

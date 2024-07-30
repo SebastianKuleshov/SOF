@@ -35,3 +35,10 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload',
         cascade='all, delete'
     )
+
+    question_votes: Mapped[list['QuestionVoteModel']] = relationship(
+        'QuestionVoteModel',
+        back_populates='user',
+        lazy='noload',
+        cascade='all, delete'
+    )

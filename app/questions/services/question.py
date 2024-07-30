@@ -59,6 +59,47 @@ class QuestionService:
         )
         return QuestionWithJoinsOutSchema.model_validate(question)
 
+    async def vote_question(
+            self,
+            question_id: int,
+            user_id: int,
+            is_upvote: bool
+    ) -> QuestionWithJoinsOutSchema:
+        question = await self.question_repository.get_entity_if_exists(
+            question_id
+        )
+        if question.user_id == user_id:
+            raise HTTPException(
+                status_code=400,
+                detail='You are not allowed to vote your own question'
+            )
+        question_vote = await self.question_repository.get_user_vote(
+            question_id,
+            user_id
+        )
+        if question_vote:
+            if question_vote.is_upvote == is_upvote:
+                raise HTTPException(
+                    status_code=400,
+                    detail='You have already voted'
+                )
+            await self.question_repository.update_vote(
+                question_vote,
+                is_upvote
+            )
+        else:
+            await self.question_repository.vote_question(
+                question_id,
+                user_id,
+                is_upvote
+            )
+
+        await self.question_repository.expire_session_for_all()
+        question = await self.question_repository.get_by_id_with_joins(
+            question_id
+        )
+        return QuestionWithJoinsOutSchema.model_validate(question)
+
     async def get_question(
             self,
             question_id: int
