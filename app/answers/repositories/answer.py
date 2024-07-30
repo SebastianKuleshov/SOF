@@ -8,7 +8,7 @@ from app.common.repositories.base_repository import BaseRepository
 class AnswerRepository(BaseRepository):
     model = AnswerModel
 
-    def get_default_stmt(self) -> Select:
+    def _get_default_stmt(self) -> Select:
         return select(self.model).options(
             joinedload(self.model.user),
             joinedload(self.model.question)
