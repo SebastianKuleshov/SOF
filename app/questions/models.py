@@ -50,3 +50,10 @@ class QuestionModel(CreatedAtUpdatedAtMixin, Base):
         back_populates='question',
         lazy='noload'
     )
+
+    tags: Mapped[list['TagModel']] = relationship(
+        'TagModel',
+        secondary='question_tag',
+        back_populates='questions',
+        lazy='noload'
+    )

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, ConfigDict
+import datetime
 
-from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
+from pydantic import BaseModel, ConfigDict
 
 
 class TagBaseSchema(BaseModel):
@@ -13,5 +13,6 @@ class TagUpdateSchema(TagBaseSchema):
     name: str | None = None
 
 
-class TagOutSchema(CreatedAtUpdatedAtMixin, TagBaseSchema):
+class TagOutSchema(TagBaseSchema):
     id: int
+    created_at: datetime.datetime

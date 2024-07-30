@@ -7,6 +7,7 @@ from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
     QuestionOutSchema, QuestionBaseSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema
+from app.tags.repositories import TagRepository
 from app.users.repositories import UserRepository
 
 
@@ -15,11 +16,13 @@ class QuestionService:
             self,
             question_repository: Annotated[QuestionRepository, Depends()],
             user_repository: Annotated[UserRepository, Depends()],
-            answer_repository: Annotated[AnswerRepository, Depends()]
+            answer_repository: Annotated[AnswerRepository, Depends()],
+            tag_repository: Annotated[TagRepository, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
         self.answer_repository = answer_repository
+        self.tag_repository = tag_repository
 
     async def create_question(
             self,
@@ -33,6 +36,29 @@ class QuestionService:
         question_model = await self.question_repository.create(question_schema)
         return QuestionOutSchema.model_validate(question_model)
 
+    async def attach_tags_to_question(
+            self,
+            question_id: int,
+            user_id: int,
+            tag_ids: list[int]
+    ) -> QuestionWithJoinsOutSchema:
+        question = await self.question_repository.get_entity_if_exists(
+            question_id
+        )
+        if question.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to attach tags to this question'
+            )
+
+        tags = await self.tag_repository.get_entities_if_exists(tag_ids)
+        await self.question_repository.attach_tags_to_question(question, tags)
+        await self.question_repository.expire_session_for_all()
+        question = await self.question_repository.get_by_id_with_joins(
+            question_id
+        )
+        return QuestionWithJoinsOutSchema.model_validate(question)
+
     async def get_question(
             self,
             question_id: int
@@ -42,7 +68,7 @@ class QuestionService:
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
-        return question
+        return QuestionWithJoinsOutSchema.model_validate(question)
 
     async def get_questions(
             self,
@@ -64,7 +90,7 @@ class QuestionService:
             for question in questions
         ]
 
-    async def get_user_questions(
+    async def get_questions_by_user(
             self,
             user_id: int
     ) -> list[QuestionForListOutSchema]:
@@ -72,6 +98,21 @@ class QuestionService:
         questions = await self.question_repository.get_multi_with_joins(
             {'user_id': user_id}
         )
+        return [
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers)
+                }
+            )
+            for question in questions
+        ]
+
+    async def get_questions_by_tag(
+            self,
+            tag_id: int
+    ) -> list[QuestionForListOutSchema]:
+        questions = await self.question_repository.get_questions_by_tag(tag_id)
         return [
             QuestionForListOutSchema.model_validate(
                 {
@@ -91,10 +132,16 @@ class QuestionService:
         question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        if question_schema.accepted_answer_id:
-            await self.answer_repository.get_entity_if_exists(
+        if question_schema.accepted_answer_id is not None:
+            answer = await self.answer_repository.get_entity_if_exists(
                 question_schema.accepted_answer_id
             )
+            if answer.question_id != question_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail='Answer does not belong to this question'
+                )
+
         if question.user_id != user_id:
             raise HTTPException(
                 status_code=403,

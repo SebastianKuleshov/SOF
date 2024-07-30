@@ -107,6 +107,22 @@ class BaseRepository(ABC):
             )
         return entity
 
+    async def get_entities_if_exists(
+            self,
+            entity_ids: List[int]
+    ) -> Sequence[MODEL]:
+        entities = await self.session.scalars(
+            select(self.model).where(self.model.id.in_(entity_ids))
+        )
+        entities = entities.all()
+        if len(entity_ids) != len(entities):
+            entity_name = self.model.__name__.replace('Model', 's')
+            raise HTTPException(
+                status_code=404,
+                detail=f'One of the {entity_name} not found'
+            )
+        return entities
+
     async def create(
             self,
             entity: SCHEMA

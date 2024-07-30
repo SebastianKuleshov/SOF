@@ -1,8 +1,8 @@
-"""implement tag model
+"""implement tag module
 
-Revision ID: 4596d6a93138
+Revision ID: 1832f591bc01
 Revises: 59ac529361cc
-Create Date: 2024-07-29 16:28:08.540758
+Create Date: 2024-07-30 12:43:16.442359
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4596d6a93138'
+revision: str = '1832f591bc01'
 down_revision: Union[str, None] = '59ac529361cc'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,8 +24,8 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_tags_id'), 'tags', ['id'], unique=False)
     op.create_table('question_tag',
