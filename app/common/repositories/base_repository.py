@@ -25,7 +25,21 @@ class BaseRepository(ABC):
     ) -> None:
         self.session = session
 
-    def get_default_stmt(self) -> Select:
+    def _get_default_stmt(self) -> Select:
+        """
+        Returns the default SQLAlchemy select
+        statement for the repository's model.
+
+        This method provides a basic select statement
+        for the model associated with the repository.
+        It can be overridden in child classes to
+        include additional query options as needed.
+
+        Usage:
+
+            def _get_default_stmt(self) -> Select:
+                return select(self.model).options(joinedload(self.model.user))
+        """
         return select(self.model)
 
     async def get_one(
@@ -40,7 +54,7 @@ class BaseRepository(ABC):
             self,
             filters: dict
     ) -> MODEL | None:
-        stmt = self.get_default_stmt()
+        stmt = self._get_default_stmt()
         return await self.session.scalar(stmt.filter_by(**filters))
 
     async def get_by_id(
@@ -53,7 +67,7 @@ class BaseRepository(ABC):
             self,
             entity_id: int
     ) -> MODEL | None:
-        stmt = self.get_default_stmt()
+        stmt = self._get_default_stmt()
         return await self.session.scalar(stmt.filter_by(id=entity_id))
 
     async def get_multi(
@@ -73,7 +87,7 @@ class BaseRepository(ABC):
             offset: int = 0,
             limit: int = 100
     ) -> Sequence[MODEL]:
-        stmt = self.get_default_stmt()
+        stmt = self._get_default_stmt()
         if filters:
             stmt = stmt.filter_by(**filters)
         entities = await self.session.scalars(stmt.offset(offset).limit(limit))

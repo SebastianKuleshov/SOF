@@ -11,7 +11,7 @@ from app.questions.models import QuestionModel
 class QuestionRepository(BaseRepository):
     model = QuestionModel
 
-    def get_default_stmt(self) -> Select:
+    def _get_default_stmt(self) -> Select:
         return select(self.model).options(
             joinedload(self.model.user),
             joinedload(self.model.answers).joinedload(
