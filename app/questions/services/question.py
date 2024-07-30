@@ -1,12 +1,13 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy.orm import joinedload
 
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
     QuestionWithUserOutSchema, QuestionOutSchema, QuestionBaseSchema, \
-    QuestionWithJoinsOutSchema
+    QuestionWithJoinsOutSchema, QuestionForListOutSchema
 from app.users.repositories import UserRepository
 
 
@@ -48,28 +49,53 @@ class QuestionService:
             self,
             skip: int = 0,
             limit: int = 100
-    ):
-        return await self.question_repository.get_list_with_joins(skip, limit)
+    ) -> list[QuestionForListOutSchema]:
+        questions = await self.question_repository.get_multi_with_joins(
+            {},
+            skip,
+            limit
+        )
+        return [
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers)
+                }
+            )
+            for question in questions
+        ]
 
     async def get_user_questions(
             self,
             user_id: int
-    ) -> list[QuestionWithUserOutSchema]:
+    ) -> list[QuestionForListOutSchema]:
         await self.user_repository.get_entity_if_exists(user_id)
-        return await self.question_repository.get_user_questions(user_id)
+        questions = await self.question_repository.get_multi_with_joins(
+            {'user_id': user_id}
+        )
+        return [
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers)
+                }
+            )
+            for question in questions
+        ]
 
     async def update_question(
             self,
             question_id: int,
             user_id: int,
             question_schema: QuestionUpdateSchema
-    ) -> QuestionOutSchema:
+    ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        await self.answer_repository.get_entity_if_exists(
-            question_schema.accepted_answer_id
-        )
+        if question_schema.accepted_answer_id:
+            await self.answer_repository.get_entity_if_exists(
+                question_schema.accepted_answer_id
+            )
         if question.user_id != user_id:
             raise HTTPException(
                 status_code=403,
@@ -77,7 +103,10 @@ class QuestionService:
             )
         await self.question_repository.update(question_id, question_schema)
         await self.question_repository.expire_session_for_all()
-        return await self.question_repository.get_by_id_with_joins(question_id)
+        question = await self.question_repository.get_by_id_with_joins(
+            question_id
+        )
+        return QuestionWithJoinsOutSchema.model_validate(question)
 
     async def delete_question(
             self,

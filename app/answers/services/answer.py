@@ -5,7 +5,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.answers.repositories import AnswerRepository
 from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
-    AnswerWithUserOutSchema, AnswerWithJoinsOutSchema, AnswerCreatePayloadSchema, \
+    AnswerWithJoinsOutSchema, \
+    AnswerCreatePayloadSchema, \
     AnswerOutSchema
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
@@ -46,20 +47,22 @@ class AnswerService:
             self,
             answer_id: int
     ) -> AnswerWithJoinsOutSchema:
-        answer = await self.answer_repository.get_by_id_with_joins(answer_id)
+        answer = await self.answer_repository.get_by_id_with_joins(
+            answer_id
+        )
         if not answer:
             raise HTTPException(
                 status_code=404,
                 detail='Answer not found'
             )
-        return answer
+        return AnswerWithJoinsOutSchema.model_validate(answer)
 
     async def update_answer(
             self,
             answer_id: int,
             user_id: int,
             answer_schema: AnswerUpdateSchema
-    ) -> AnswerWithUserOutSchema:
+    ) -> AnswerWithJoinsOutSchema:
         answer = await self.answer_repository.get_entity_if_exists(answer_id)
         if answer.user_id != user_id:
             raise HTTPException(
@@ -67,7 +70,11 @@ class AnswerService:
                 detail='You are not allowed to update this answer'
             )
         await self.answer_repository.update(answer_id, answer_schema)
-        return await self.answer_repository.get_by_id_with_user(answer_id)
+        await self.answer_repository.expire_session_for_all()
+        answer = await self.answer_repository.get_by_id_with_joins(
+            answer_id
+        )
+        return AnswerWithJoinsOutSchema.model_validate(answer)
 
     async def delete_answer(
             self,

@@ -52,7 +52,7 @@ async def get_question(
 
 @router.get(
     '/user/{user_id}',
-    response_model=list[question_schemas.QuestionWithUserOutSchema],
+    response_model=list[question_schemas.QuestionForListOutSchema],
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 async def get_user_questions(
@@ -64,7 +64,7 @@ async def get_user_questions(
 
 @router.put(
     '/{question_id}',
-    response_model=question_schemas.QuestionOutSchema
+    response_model=question_schemas.QuestionWithJoinsOutSchema
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
