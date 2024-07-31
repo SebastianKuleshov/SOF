@@ -1,8 +1,6 @@
 from typing import Sequence
 
-from fastapi import HTTPException
 from sqlalchemy import Select, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
@@ -27,13 +25,20 @@ class QuestionRepository(BaseRepository):
             tags: Sequence[TagModel]
     ) -> None:
         question.tags = tags
-        try:
-            await self.session.commit()
-        except IntegrityError:
-            raise HTTPException(
-                status_code=400,
-                detail="One of the tags already attached to the question."
-            )
+        await self.session.commit()
+
+    async def reattach_tags_to_question(
+            self,
+            question: QuestionModel,
+            tags: Sequence[TagModel]
+    ) -> QuestionModel:
+
+        question.tags.clear()
+        await self.session.flush()
+        question.tags = tags
+
+        await self.session.commit()
+        return question
 
     async def get_questions_by_tag(
             self,
