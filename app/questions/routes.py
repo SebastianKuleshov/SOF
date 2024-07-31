@@ -14,11 +14,11 @@ router = APIRouter(
 
 @router.post(
     '/',
-    response_model=question_schemas.QuestionOutSchema
+    response_model=question_schemas.QuestionWithTagsOutSchema
 )
 async def create_question(
         question_service: Annotated[QuestionService, Depends()],
-        question: question_schemas.QuestionBaseSchema,
+        question: question_schemas.QuestionCreatePayloadSchema,
         user: Annotated[AuthService.get_user_from_jwt, Depends()]
 ):
     return await question_service.create_question(question, user.id)
@@ -55,11 +55,25 @@ async def get_question(
     response_model=list[question_schemas.QuestionForListOutSchema],
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
-async def get_user_questions(
+async def get_questions_by_user(
         question_service: Annotated[QuestionService, Depends()],
         user_id: int
 ):
-    return await question_service.get_user_questions(user_id)
+    return await question_service.get_questions_by_user(user_id)
+
+
+@router.get(
+    '/tag/{tag_id}',
+    dependencies=[Depends(AuthService.get_user_from_jwt)],
+    response_model=list[question_schemas.QuestionForListOutSchema]
+)
+async def get_questions_by_tag(
+        question_service: Annotated[QuestionService, Depends()],
+        tag_id: int
+):
+    return await question_service.get_questions_by_tag(
+        tag_id
+    )
 
 
 @router.put(
@@ -70,7 +84,7 @@ async def update_question(
         question_service: Annotated[QuestionService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
-        question: question_schemas.QuestionUpdateSchema
+        question: question_schemas.QuestionUpdatePayloadSchema
 ):
     return await question_service.update_question(
         question_id,
