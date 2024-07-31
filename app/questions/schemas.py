@@ -19,10 +19,18 @@ class QuestionCreateSchema(QuestionBaseSchema):
     user_id: int
 
 
+class QuestionCreatePayloadSchema(QuestionBaseSchema):
+    tags: list[int] = Field(min_length=1, max_length=5)
+
+
 class QuestionUpdateSchema(QuestionBaseSchema):
     title: str = Field(None, min_length=10, max_length=150)
     body: Text = Field(None, min_length=30, max_length=3500)
     accepted_answer_id: int | None = None
+
+
+class QuestionUpdatePayloadSchema(QuestionUpdateSchema):
+    tags: list[int] = Field(None, min_length=1, max_length=5)
 
 
 class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):

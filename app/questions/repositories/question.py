@@ -32,13 +32,12 @@ class QuestionRepository(BaseRepository):
             self,
             question: QuestionModel,
             tags: Sequence[TagModel]
-    ) -> QuestionModel:
+    ) -> None:
         question.tags.clear()
         await self.session.flush()
         question.tags = tags
 
         await self.session.commit()
-        return question
 
     async def get_user_vote(
             self,
