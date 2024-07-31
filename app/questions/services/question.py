@@ -4,10 +4,10 @@ from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
-from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
-    QuestionBaseSchema, \
+from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
-    QuestionWithTagsOutSchema
+    QuestionWithTagsOutSchema, QuestionCreatePayloadSchema, \
+    QuestionUpdatePayloadSchema, QuestionUpdateSchema
 from app.tags.repositories import TagRepository
 from app.users.repositories import UserRepository
 
@@ -27,16 +27,18 @@ class QuestionService:
 
     async def create_question(
             self,
-            question_schema: QuestionBaseSchema,
-            user_id: int,
-            tag_ids: list[int]
+            question_payload_schema: QuestionCreatePayloadSchema,
+            user_id: int
     ) -> QuestionWithTagsOutSchema:
-        question_schema = QuestionCreateSchema(
-            **question_schema.model_dump(),
+        question_create_schema = QuestionCreateSchema(
+            **question_payload_schema.model_dump(),
             user_id=user_id
         )
-        question_model = await self.question_repository.create(question_schema)
+        question_model = await self.question_repository.create(
+            question_create_schema
+        )
 
+        tag_ids = question_payload_schema.tags
         tags = await self.tag_repository.get_entities_if_exists(tag_ids)
         await self.question_repository.attach_tags_to_question(
             question_model,
@@ -44,33 +46,6 @@ class QuestionService:
         )
 
         return QuestionWithTagsOutSchema.model_validate(question_model)
-
-    async def reattach_tags_to_question(
-            self,
-            question_id: int,
-            user_id: int,
-            tag_ids: list[int]
-    ) -> QuestionWithJoinsOutSchema:
-        question = await self.question_repository.get_by_id_with_joins(
-            question_id
-        )
-        if not question:
-            raise HTTPException(
-                status_code=404,
-                detail='Question not found'
-            )
-        if question.user_id != user_id:
-            raise HTTPException(
-                status_code=403,
-                detail='You are not allowed to attach tags to this question'
-            )
-
-        tags = await self.tag_repository.get_entities_if_exists(tag_ids)
-        question = await self.question_repository.reattach_tags_to_question(
-            question,
-            tags
-        )
-        return QuestionWithJoinsOutSchema.model_validate(question)
 
     async def get_question(
             self,
@@ -140,14 +115,14 @@ class QuestionService:
             self,
             question_id: int,
             user_id: int,
-            question_schema: QuestionUpdateSchema
+            question_payload_schema: QuestionUpdatePayloadSchema
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        if question_schema.accepted_answer_id is not None:
+        if question_payload_schema.accepted_answer_id is not None:
             answer = await self.answer_repository.get_entity_if_exists(
-                question_schema.accepted_answer_id
+                question_payload_schema.accepted_answer_id
             )
             if answer.question_id != question_id:
                 raise HTTPException(
@@ -160,10 +135,23 @@ class QuestionService:
                 status_code=403,
                 detail='You are not allowed to update this question'
             )
-        await self.question_repository.update(question_id, question_schema)
+        await self.question_repository.update(
+            question_id,
+            QuestionUpdateSchema(**question_payload_schema.__dict__)
+        )
+
+        tags = await self.tag_repository.get_entities_if_exists(
+            question_payload_schema.tags
+        )
+
         await self.question_repository.expire_session_for_all()
         question = await self.question_repository.get_by_id_with_joins(
             question_id
+        )
+
+        await self.question_repository.reattach_tags_to_question(
+            question,
+            tags
         )
         return QuestionWithJoinsOutSchema.model_validate(question)
 
