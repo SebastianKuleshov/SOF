@@ -65,6 +65,7 @@ class QuestionService:
                 'votes_difference': votes_difference
             }
         )
+
     async def vote_question(
             self,
             question_id: int,
@@ -106,7 +107,6 @@ class QuestionService:
         )
         return QuestionWithJoinsOutSchema.model_validate(question)
 
-
     async def get_questions(
             self,
             skip: int = 0,
@@ -117,21 +117,19 @@ class QuestionService:
             skip,
             limit
         )
-        questions_list = []
-        for question in questions:
-            votes_difference = await self.question_repository.get_question_votes_difference(
-                question.id
+        return [
+            QuestionForListOutSchema.model_validate(
+                {
+                    **question.__dict__,
+                    'answer_count': len(question.answers),
+                    'votes_difference':
+                        await self.question_repository.get_question_votes_difference(
+                            question.id
+                        )
+                }
             )
-            questions_list.append(
-                QuestionForListOutSchema.model_validate(
-                    {
-                        **question.__dict__,
-                        'answer_count': len(question.answers),
-                        'votes_difference': votes_difference
-                    }
-                )
-            )
-        return questions_list
+            for question in questions
+        ]
 
     async def get_questions_by_user(
             self,
@@ -145,7 +143,12 @@ class QuestionService:
             QuestionForListOutSchema.model_validate(
                 {
                     **question.__dict__,
-                    'answer_count': len(question.answers)
+                    'answer_count': len(question.answers),
+                    'votes_difference':
+                        await self.question_repository.get_question_votes_difference(
+                            question.id
+                        )
+
                 }
             )
             for question in questions
@@ -160,7 +163,11 @@ class QuestionService:
             QuestionForListOutSchema.model_validate(
                 {
                     **question.__dict__,
-                    'answer_count': len(question.answers)
+                    'answer_count': len(question.answers),
+                    'votes_difference':
+                        await self.question_repository.get_question_votes_difference(
+                            question.id
+                        )
                 }
             )
             for question in questions
@@ -210,7 +217,16 @@ class QuestionService:
                 tags
             )
 
-        return QuestionWithJoinsOutSchema.model_validate(question)
+        return QuestionWithJoinsOutSchema.model_validate(
+            {
+                **question.__dict__,
+                'votes_difference':
+                    await self.question_repository.get_question_votes_difference(
+                        question_id
+                    )
+            }
+
+        )
 
     async def delete_question(
             self,

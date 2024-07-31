@@ -41,6 +41,7 @@ class QuestionVoteModel(Base):
         back_populates='question_votes',
         lazy='noload'
     )
+
     question: Mapped['QuestionModel'] = relationship(
         'QuestionModel',
         back_populates='votes',
