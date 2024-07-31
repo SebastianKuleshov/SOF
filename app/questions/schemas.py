@@ -31,15 +31,15 @@ class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
     accepted_answer_id: int | None
 
 
-class QuestionWithUserOutSchema(QuestionOutSchema):
-    user: UserOutSchema
-
-
 class TagOutSchema(BaseModel):
     id: int
     name: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionWithTagsOutSchema(QuestionOutSchema):
+    tags: list[TagOutSchema]
 
 
 class QuestionForListOutSchema(QuestionOutSchema):

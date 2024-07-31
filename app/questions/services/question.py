@@ -5,8 +5,9 @@ from fastapi import Depends, HTTPException
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionUpdateSchema, QuestionCreateSchema, \
-    QuestionOutSchema, QuestionBaseSchema, \
-    QuestionWithJoinsOutSchema, QuestionForListOutSchema
+    QuestionBaseSchema, \
+    QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
+    QuestionWithTagsOutSchema
 from app.tags.repositories import TagRepository
 from app.users.repositories import UserRepository
 
@@ -27,24 +28,37 @@ class QuestionService:
     async def create_question(
             self,
             question_schema: QuestionBaseSchema,
-            user_id: int
-    ) -> QuestionOutSchema:
+            user_id: int,
+            tag_ids: list[int]
+    ) -> QuestionWithTagsOutSchema:
         question_schema = QuestionCreateSchema(
             **question_schema.model_dump(),
             user_id=user_id
         )
         question_model = await self.question_repository.create(question_schema)
-        return QuestionOutSchema.model_validate(question_model)
 
-    async def attach_tags_to_question(
+        tags = await self.tag_repository.get_entities_if_exists(tag_ids)
+        await self.question_repository.attach_tags_to_question(
+            question_model,
+            tags
+        )
+
+        return QuestionWithTagsOutSchema.model_validate(question_model)
+
+    async def reattach_tags_to_question(
             self,
             question_id: int,
             user_id: int,
             tag_ids: list[int]
     ) -> QuestionWithJoinsOutSchema:
-        question = await self.question_repository.get_entity_if_exists(
+        question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
+        if not question:
+            raise HTTPException(
+                status_code=404,
+                detail='Question not found'
+            )
         if question.user_id != user_id:
             raise HTTPException(
                 status_code=403,
@@ -52,10 +66,9 @@ class QuestionService:
             )
 
         tags = await self.tag_repository.get_entities_if_exists(tag_ids)
-        await self.question_repository.attach_tags_to_question(question, tags)
-        await self.question_repository.expire_session_for_all()
-        question = await self.question_repository.get_by_id_with_joins(
-            question_id
+        question = await self.question_repository.reattach_tags_to_question(
+            question,
+            tags
         )
         return QuestionWithJoinsOutSchema.model_validate(question)
 

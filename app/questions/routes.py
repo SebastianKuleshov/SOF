@@ -14,27 +14,28 @@ router = APIRouter(
 
 @router.post(
     '/',
-    response_model=question_schemas.QuestionOutSchema
+    response_model=question_schemas.QuestionWithTagsOutSchema
 )
 async def create_question(
         question_service: Annotated[QuestionService, Depends()],
         question: question_schemas.QuestionBaseSchema,
-        user: Annotated[AuthService.get_user_from_jwt, Depends()]
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        tags: list[int]
 ):
-    return await question_service.create_question(question, user.id)
+    return await question_service.create_question(question, user.id, tags)
 
 
 @router.post(
     '/{question_id}',
     response_model=question_schemas.QuestionWithJoinsOutSchema
 )
-async def attach_tags_to_question(
+async def reattach_tags_to_question(
         question_service: Annotated[QuestionService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int,
         tags: list[int]
 ):
-    return await question_service.attach_tags_to_question(
+    return await question_service.reattach_tags_to_question(
         question_id,
         user.id,
         tags
