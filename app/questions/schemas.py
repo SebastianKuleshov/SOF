@@ -46,6 +46,7 @@ class QuestionForListOutSchema(QuestionOutSchema):
     user: UserOutSchema
     answer_count: int
     tags: list[TagOutSchema]
+    votes_difference: int
 
 
 class QuestionWithJoinsOutSchema(QuestionOutSchema):
@@ -53,3 +54,4 @@ class QuestionWithJoinsOutSchema(QuestionOutSchema):
     answers: list[AnswerWithCommentsOutSchema]
     comments: list[CommentOutSchema]
     tags: list[TagOutSchema]
+    votes_difference: int

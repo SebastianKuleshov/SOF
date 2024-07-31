@@ -122,7 +122,15 @@ class QuestionService:
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
-        return QuestionWithJoinsOutSchema.model_validate(question)
+        votes_difference = await self.question_repository.get_question_votes_difference(
+            question_id
+        )
+        return QuestionWithJoinsOutSchema.model_validate(
+            {
+                **question.__dict__,
+                'votes_difference': votes_difference
+            }
+        )
 
     async def get_questions(
             self,
@@ -134,15 +142,21 @@ class QuestionService:
             skip,
             limit
         )
-        return [
-            QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers)
-                }
+        questions_list = []
+        for question in questions:
+            votes_difference = await self.question_repository.get_question_votes_difference(
+                question.id
             )
-            for question in questions
-        ]
+            questions_list.append(
+                QuestionForListOutSchema.model_validate(
+                    {
+                        **question.__dict__,
+                        'answer_count': len(question.answers),
+                        'votes_difference': votes_difference
+                    }
+                )
+            )
+        return questions_list
 
     async def get_questions_by_user(
             self,

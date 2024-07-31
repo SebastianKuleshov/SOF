@@ -1,7 +1,7 @@
-from typing import Sequence, Any
+from typing import Sequence
 
 from sqlalchemy import Select, select
-from sqlalchemy import func, Row
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
@@ -77,10 +77,10 @@ class QuestionRepository(BaseRepository):
         self.session.add(question_vote)
         await self.session.commit()
 
-    async def get_question_votes(
+    async def get_question_votes_difference(
             self,
             question_id: int
-    ) -> Sequence[Row[tuple[Any, Any]]]:
+    ) -> int:
         stmt = (
             select(
                 QuestionVoteModel.is_upvote,
@@ -92,7 +92,13 @@ class QuestionRepository(BaseRepository):
         )
         votes_count = await self.session.execute(stmt)
         votes_count = votes_count.all()
-        return votes_count
+        votes_dict = dict(votes_count)
+
+        upvotes = votes_dict.get(True, 0)
+        downvotes = votes_dict.get(False, 0)
+
+        difference = upvotes - downvotes
+        return difference
 
     async def get_questions_by_tag(
             self,
