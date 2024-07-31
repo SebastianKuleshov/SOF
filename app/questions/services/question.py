@@ -140,19 +140,21 @@ class QuestionService:
             QuestionUpdateSchema(**question_payload_schema.__dict__)
         )
 
-        tags = await self.tag_repository.get_entities_if_exists(
-            question_payload_schema.tags
-        )
-
         await self.question_repository.expire_session_for_all()
         question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
 
-        await self.question_repository.reattach_tags_to_question(
-            question,
-            tags
-        )
+        if question_payload_schema.tags is not None:
+            tags = await self.tag_repository.get_entities_if_exists(
+                question_payload_schema.tags
+            )
+
+            await self.question_repository.reattach_tags_to_question(
+                question,
+                tags
+            )
+
         return QuestionWithJoinsOutSchema.model_validate(question)
 
     async def delete_question(

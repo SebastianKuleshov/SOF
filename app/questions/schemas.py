@@ -20,7 +20,7 @@ class QuestionCreateSchema(QuestionBaseSchema):
 
 
 class QuestionCreatePayloadSchema(QuestionBaseSchema):
-    tags: list[int] = Field(max_length=5)
+    tags: list[int] = Field(min_length=1, max_length=5)
 
 
 class QuestionUpdateSchema(QuestionBaseSchema):
@@ -30,7 +30,7 @@ class QuestionUpdateSchema(QuestionBaseSchema):
 
 
 class QuestionUpdatePayloadSchema(QuestionUpdateSchema):
-    tags: list[int] = Field(None, max_length=5)
+    tags: list[int] = Field(None, min_length=1, max_length=5)
 
 
 class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
