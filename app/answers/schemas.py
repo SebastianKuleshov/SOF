@@ -52,3 +52,4 @@ class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
 class AnswerWithJoinsOutSchema(AnswerOutSchema):
     user: UserOutSchema
     question: QuestionOutSchema
+    votes_difference: int

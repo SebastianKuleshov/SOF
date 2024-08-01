@@ -21,6 +21,24 @@ async def create_answer(
     return await answer_service.create_answer(answer, user.id)
 
 
+@router.post(
+    '/votes/{question_id}',
+    response_model=answer_schemas.AnswerWithJoinsOutSchema
+)
+async def vote_answer(
+        answer_service: Annotated[AnswerService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        answer_id: int,
+        is_upvote: bool
+):
+    return await answer_service.vote_answer(
+        answer_id,
+        user.id,
+        is_upvote
+
+    )
+
+
 @router.get(
     '/',
     response_model=list[answer_schemas.AnswerOutSchema]

@@ -95,7 +95,7 @@ class QuestionService:
                 is_upvote
             )
         else:
-            await self.question_repository.vote_question(
+            await self.question_repository.create_vote_question(
                 question_id,
                 user_id,
                 is_upvote
@@ -105,7 +105,15 @@ class QuestionService:
         question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
-        return QuestionWithJoinsOutSchema.model_validate(question)
+        return QuestionWithJoinsOutSchema.model_validate(
+            {
+                **question.__dict__,
+                'votes_difference':
+                    await self.question_repository.get_question_votes_difference(
+                        question_id
+                    )
+            }
+        )
 
     async def get_questions(
             self,

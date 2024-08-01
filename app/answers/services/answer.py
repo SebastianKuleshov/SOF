@@ -55,7 +55,62 @@ class AnswerService:
                 status_code=404,
                 detail='Answer not found'
             )
-        return AnswerWithJoinsOutSchema.model_validate(answer)
+
+        return AnswerWithJoinsOutSchema.model_validate(
+            {
+                **answer.__dict__,
+                'votes_difference': await self.answer_repository.get_answer_votes_difference(
+                    answer_id
+                )
+            }
+        )
+
+    async def vote_answer(
+            self,
+            answer_id: int,
+            user_id: int,
+            is_upvote: bool
+    ) -> AnswerWithJoinsOutSchema:
+        answer = await self.answer_repository.get_entity_if_exists(answer_id)
+        if answer.user_id == user_id:
+            raise HTTPException(
+                status_code=403,
+                detail='You are not allowed to vote your own answer'
+            )
+        answer_vote = await self.answer_repository.get_user_vote(
+            answer_id,
+            user_id
+        )
+        if answer_vote:
+            if answer_vote.is_upvote == is_upvote:
+                raise HTTPException(
+                    status_code=400,
+                    detail='You have already voted'
+                )
+            await self.answer_repository.update_vote(
+                answer_vote,
+                is_upvote
+            )
+        else:
+            await self.answer_repository.create_vote_answer(
+                answer_id,
+                user_id,
+                is_upvote
+            )
+
+        await self.answer_repository.expire_session_for_all()
+        answer = await self.answer_repository.get_by_id_with_joins(
+            answer_id
+        )
+
+        return AnswerWithJoinsOutSchema.model_validate(
+            {
+                **answer.__dict__,
+                'votes_difference': await self.answer_repository.get_answer_votes_difference(
+                    answer_id
+                )
+            }
+        )
 
     async def update_answer(
             self,
@@ -74,7 +129,15 @@ class AnswerService:
         answer = await self.answer_repository.get_by_id_with_joins(
             answer_id
         )
-        return AnswerWithJoinsOutSchema.model_validate(answer)
+
+        return AnswerWithJoinsOutSchema.model_validate(
+            {
+                **answer.__dict__,
+                'votes_difference': await self.answer_repository.get_answer_votes_difference(
+                    answer_id
+                )
+            }
+        )
 
     async def delete_answer(
             self,

@@ -62,7 +62,7 @@ class QuestionRepository(BaseRepository):
         question_vote.is_upvote = is_upvote
         await self.session.commit()
 
-    async def vote_question(
+    async def create_vote_question(
             self,
             question_id: int,
             user_id: int,
