@@ -9,7 +9,6 @@ from app.core.adapters.postgres.postgres_adapter import Base
 
 class AnswerVoteModel(Base):
     __tablename__ = 'answer_vote'
-    __table_args__ = (UniqueConstraint('answer_id', 'user_id'),)
 
     answer_id: Mapped[int] = mapped_column(
         ForeignKey('answers.id', ondelete='CASCADE'),

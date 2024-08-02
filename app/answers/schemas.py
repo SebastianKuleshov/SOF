@@ -31,25 +31,11 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
     question_id: int
 
 
-class AnswerWithUserOutSchema(AnswerOutSchema):
-    user: UserOutSchema
-
-
 class AnswerWithCommentsOutSchema(AnswerOutSchema):
     comments: list[CommentOutSchema]
-
-
-class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
-    id: int
-    title: str
-    body: Text
-    user_id: int
-    accepted_answer_id: int | None
-
-    model_config = ConfigDict(from_attributes=True)
+    votes_difference: int
 
 
 class AnswerWithJoinsOutSchema(AnswerOutSchema):
     user: UserOutSchema
-    question: QuestionOutSchema
     votes_difference: int

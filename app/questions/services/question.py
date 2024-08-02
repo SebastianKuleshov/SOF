@@ -59,59 +59,23 @@ class QuestionService:
         votes_difference = await self.question_repository.get_question_votes_difference(
             question_id
         )
-        return QuestionWithJoinsOutSchema.model_validate(
+
+        answers_votes_difference = await self.answer_repository.get_answers_votes_difference(
+            [answer.id for answer in question.answers]
+        )
+        answers_with_votes = [
             {
-                **question.__dict__,
-                'votes_difference': votes_difference
+                **answer.__dict__,
+                'votes_difference': answers_votes_difference.get(answer.id, 0)
             }
-        )
+            for answer in question.answers
+        ]
 
-    async def vote_question(
-            self,
-            question_id: int,
-            user_id: int,
-            is_upvote: bool
-    ) -> QuestionWithJoinsOutSchema:
-        question = await self.question_repository.get_entity_if_exists(
-            question_id
-        )
-        if question.user_id == user_id:
-            raise HTTPException(
-                status_code=400,
-                detail='You are not allowed to vote your own question'
-            )
-        question_vote = await self.question_repository.get_user_vote(
-            question_id,
-            user_id
-        )
-        if question_vote:
-            if question_vote.is_upvote == is_upvote:
-                raise HTTPException(
-                    status_code=400,
-                    detail='You have already voted'
-                )
-            await self.question_repository.update_vote(
-                question_vote,
-                is_upvote
-            )
-        else:
-            await self.question_repository.create_vote_question(
-                question_id,
-                user_id,
-                is_upvote
-            )
-
-        await self.question_repository.expire_session_for_all()
-        question = await self.question_repository.get_by_id_with_joins(
-            question_id
-        )
         return QuestionWithJoinsOutSchema.model_validate(
             {
                 **question.__dict__,
-                'votes_difference':
-                    await self.question_repository.get_question_votes_difference(
-                        question_id
-                    )
+                'answers': answers_with_votes,
+                'votes_difference': votes_difference
             }
         )
 
@@ -205,9 +169,13 @@ class QuestionService:
                 status_code=403,
                 detail='You are not allowed to update this question'
             )
+        update_schema = QuestionUpdateSchema(
+            **question_payload_schema.model_dump(exclude_unset=True)
+        )
+
         await self.question_repository.update(
             question_id,
-            QuestionUpdateSchema(**question_payload_schema.__dict__)
+            update_schema
         )
 
         await self.question_repository.expire_session_for_all()
@@ -225,9 +193,21 @@ class QuestionService:
                 tags
             )
 
+        answers_votes_difference = await self.answer_repository.get_answers_votes_difference(
+            [answer.id for answer in question.answers]
+        )
+        answers_with_votes = [
+            {
+                **answer.__dict__,
+                'votes_difference': answers_votes_difference.get(answer.id, 0)
+            }
+            for answer in question.answers
+        ]
+
         return QuestionWithJoinsOutSchema.model_validate(
             {
                 **question.__dict__,
+                'answers': answers_with_votes,
                 'votes_difference':
                     await self.question_repository.get_question_votes_difference(
                         question_id

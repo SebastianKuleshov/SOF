@@ -24,7 +24,6 @@ question_tag = Table(
 
 class QuestionVoteModel(Base):
     __tablename__ = 'question_vote'
-    __table_args__ = (UniqueConstraint('question_id', 'user_id'),)
 
     question_id: Mapped[int] = mapped_column(
         ForeignKey('questions.id', ondelete='CASCADE'),

@@ -24,8 +24,8 @@ class QuestionCreatePayloadSchema(QuestionBaseSchema):
 
 
 class QuestionUpdateSchema(QuestionBaseSchema):
-    title: str = Field(None, min_length=10, max_length=150)
-    body: Text = Field(None, min_length=30, max_length=3500)
+    title: str | None = Field(None, min_length=10, max_length=150)
+    body: Text | None = Field(None, min_length=30, max_length=3500)
     accepted_answer_id: int | None = None
 
 

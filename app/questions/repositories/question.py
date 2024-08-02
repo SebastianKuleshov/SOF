@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, select, delete
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
@@ -39,7 +39,7 @@ class QuestionRepository(BaseRepository):
 
         await self.session.commit()
 
-    async def get_user_vote(
+    async def get_vote(
             self,
             question_id: int,
             user_id: int
@@ -54,15 +54,7 @@ class QuestionRepository(BaseRepository):
         question_vote = await self.session.scalar(stmt)
         return question_vote
 
-    async def update_vote(
-            self,
-            question_vote: QuestionVoteModel,
-            is_upvote: bool
-    ) -> None:
-        question_vote.is_upvote = is_upvote
-        await self.session.commit()
-
-    async def create_vote_question(
+    async def create_vote(
             self,
             question_id: int,
             user_id: int,
@@ -75,6 +67,15 @@ class QuestionRepository(BaseRepository):
         )
         self.session.add(question_vote)
         await self.session.commit()
+
+    async def delete_vote(
+            self,
+            user_vote: QuestionVoteModel
+    ) -> bool:
+        await self.session.delete(user_vote)
+        await self.session.commit()
+
+        return True
 
     async def get_question_votes_difference(
             self,

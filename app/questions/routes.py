@@ -1,10 +1,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 from app.auth.services import AuthService
 from app.questions import schemas as question_schemas
 from app.questions.services import QuestionService
+from app.voting.services.voting import VotingService
 
 router = APIRouter(
     prefix='/questions',
@@ -25,19 +27,75 @@ async def create_question(
 
 
 @router.post(
-    '/votes/{question_id}',
-    response_model=question_schemas.QuestionWithJoinsOutSchema
+    '/votes/upvote/{question_id}'
 )
-async def vote_question(
-        question_service: Annotated[QuestionService, Depends()],
+async def upvote_question(
+        voting_service: Annotated[VotingService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
-        question_id: int,
-        is_upvote: bool
-):
-    return await question_service.vote_question(
+        question_id: int
+) -> JSONResponse:
+    return await voting_service.upvote(
+        'question',
         question_id,
-        user.id,
-        is_upvote
+        user.id
+    )
+
+
+@router.post(
+    '/votes/downvote/{question_id}'
+)
+async def downvote_question(
+        voting_service: Annotated[VotingService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int
+) -> JSONResponse:
+    return await voting_service.downvote(
+        'question',
+        question_id,
+        user.id
+    )
+
+
+@router.post(
+    '/votes/revoke-upvote/{question_id}'
+)
+async def revoke_upvote_question(
+        voting_service: Annotated[VotingService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int
+) -> JSONResponse:
+    return await voting_service.revoke_upvote(
+        'question',
+        question_id,
+        user.id
+    )
+
+
+@router.post(
+    '/votes/revoke-downvote/{question_id}'
+)
+async def revoke_downvote_question(
+        voting_service: Annotated[VotingService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int
+) -> JSONResponse:
+    return await voting_service.revoke_downvote(
+        'question',
+        question_id,
+        user.id
+    )
+
+
+@router.get('/votes/{question_id}')
+async def get_vote(
+        voting_service: Annotated[VotingService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int
+) -> JSONResponse:
+    return await voting_service.get_vote(
+        'question',
+        question_id,
+        user.id
     )
 
 

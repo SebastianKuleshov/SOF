@@ -1,8 +1,8 @@
-"""implement question and answer vote model
+"""implement question and answer vote models
 
-Revision ID: 79bcaaef5f85
+Revision ID: 80e2930908cd
 Revises: 5f0acfed1e6a
-Create Date: 2024-08-01 09:49:57.433301
+Create Date: 2024-08-01 12:43:43.690232
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '79bcaaef5f85'
+revision: str = '80e2930908cd'
 down_revision: Union[str, None] = '5f0acfed1e6a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,8 +26,7 @@ def upgrade() -> None:
     sa.Column('is_upvote', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['question_id'], ['questions.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('question_id', 'user_id'),
-    sa.UniqueConstraint('question_id', 'user_id')
+    sa.PrimaryKeyConstraint('question_id', 'user_id')
     )
     op.create_table('answer_vote',
     sa.Column('answer_id', sa.Integer(), nullable=False),
@@ -35,8 +34,7 @@ def upgrade() -> None:
     sa.Column('is_upvote', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['answer_id'], ['answers.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('answer_id', 'user_id'),
-    sa.UniqueConstraint('answer_id', 'user_id')
+    sa.PrimaryKeyConstraint('answer_id', 'user_id')
     )
     # ### end Alembic commands ###
 
