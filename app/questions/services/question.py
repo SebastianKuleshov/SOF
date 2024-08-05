@@ -58,6 +58,7 @@ class QuestionService:
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
 
+        # Checks if the current user has voted on the answers.
         answers_with_user_vote = question.answers
         if user_id:
             answers_with_user_vote = [

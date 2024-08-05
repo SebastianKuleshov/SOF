@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
 
 from app.answers import schemas as answer_schemas
 from app.answers.services import AnswerService
@@ -31,9 +30,10 @@ async def upvote_answer(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         vote: vote_schemas.VoteCreateSchema,
-) -> JSONResponse:
+) -> vote_schemas.VoteOutSchema:
     return await vote_service.create_vote(
         vote,
+        'answer',
         user.id,
         True
     )
@@ -46,9 +46,10 @@ async def downvote_answer(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         vote: vote_schemas.VoteCreateSchema,
-) -> JSONResponse:
+) -> vote_schemas.VoteOutSchema:
     return await vote_service.create_vote(
         vote,
+        'answer',
         user.id,
         False
     )
@@ -61,7 +62,7 @@ async def revoke_upvote_answer(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         answer_id: int,
-) -> JSONResponse:
+) -> bool:
     return await vote_service.revoke_vote(
         'answer',
         answer_id,
@@ -77,7 +78,7 @@ async def revoke_downvote_answer(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         answer_id: int,
-) -> JSONResponse:
+) -> bool:
     return await vote_service.revoke_vote(
         'answer',
         answer_id,

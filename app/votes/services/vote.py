@@ -1,13 +1,13 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
-from fastapi.responses import JSONResponse
 
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
 from app.votes.repository import VoteRepository
-from app.votes.schemas import VoteCreateSchema, VoteCreatePayloadSchema
+from app.votes.schemas import VoteCreateSchema, VoteCreatePayloadSchema, \
+    VoteOutSchema
 
 
 class VoteService:
@@ -23,55 +23,53 @@ class VoteService:
         self.answer_repository = answer_repository
         self.user_repository = user_repository
 
+    async def _get_entity_repository(
+            self,
+            entity_type: str
+    ) -> QuestionRepository | AnswerRepository:
+        if entity_type == 'question':
+            return self.question_repository
+        elif entity_type == 'answer':
+            return self.answer_repository
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail='Invalid entity type'
+            )
+
     async def create_vote(
             self,
             vote_schema: VoteCreateSchema,
+            entity_type: str,
             user_id: int,
             is_upvote: bool
-    ) -> JSONResponse:
-        if vote_schema.question_id:
-            question = await self.question_repository.get_entity_if_exists(
-                vote_schema.question_id
-            )
-            if question.user_id == user_id:
-                raise HTTPException(
-                    status_code=403,
-                    detail='You are not allowed to vote your own question'
-                )
+    ) -> VoteOutSchema:
+        repository = await self._get_entity_repository(entity_type)
 
-            existing_vote = await self.vote_repository.get_one(
-                {
-                    'user_id': user_id,
-                    'question_id': vote_schema.question_id
-                }
-            )
-            target_user_id = question.user_id
+        entity_id = vote_schema.model_dump().get(f'{entity_type}_id')
+        entity = await repository.get_entity_if_exists(entity_id)
 
-        elif vote_schema.answer_id:
-            answer = await self.answer_repository.get_entity_if_exists(
-                vote_schema.answer_id
+        if entity.user_id == user_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f'You are not allowed to vote your own {entity_type}'
             )
-            if answer.user_id == user_id:
-                raise HTTPException(
-                    status_code=403,
-                    detail='You are not allowed to vote your own answer'
-                )
 
-            existing_vote = await self.vote_repository.get_one(
-                {
-                    'user_id': user_id,
-                    'answer_id': vote_schema.answer_id
-                }
-            )
-            target_user_id = answer.user_id
+        existing_vote = await self.vote_repository.get_one(
+            {
+                'user_id': user_id,
+                f'{entity_type}_id': entity_id
+            }
+        )
+        target_user_id = entity.user_id
 
         if existing_vote:
             raise HTTPException(
                 status_code=400,
-                detail='You have already voted on this item'
+                detail=f'You have already voted on this {entity_type}'
             )
 
-        await self.vote_repository.create(
+        vote_model = await self.vote_repository.create(
             VoteCreatePayloadSchema(
                 **vote_schema.__dict__,
                 user_id=user_id,
@@ -84,10 +82,7 @@ class VoteService:
             is_upvote
         )
 
-        return JSONResponse(
-            content={"message": "Vote created"},
-            status_code=201
-        )
+        return VoteOutSchema.model_validate(vote_model)
 
     async def revoke_vote(
             self,
@@ -95,7 +90,8 @@ class VoteService:
             entity_id: int,
             user_id: int,
             is_upvote: bool
-    ) -> JSONResponse:
+    ) -> bool:
+        repository = await self._get_entity_repository(entity_type)
         vote = await self.vote_repository.get_one(
             {
                 'user_id': user_id,
@@ -109,25 +105,12 @@ class VoteService:
                 detail='Vote not found'
             )
 
-        if entity_type == 'question':
-            question = await self.question_repository.get_entity_if_exists(
-                entity_id
-            )
-            target_user_id = question.user_id
-        elif entity_type == 'answer':
-            answer = await self.answer_repository.get_entity_if_exists(
-                entity_id
-            )
-            target_user_id = answer.user_id
-
-        await self.vote_repository.delete(vote.id)
+        entity = await repository.get_entity_if_exists(entity_id)
+        target_user_id = entity.user_id
 
         await self.user_repository.update_reputation(
             target_user_id,
             not is_upvote
         )
 
-        return JSONResponse(
-            content={"message": "Vote deleted"},
-            status_code=200
-        )
+        return await self.vote_repository.delete(vote.id)

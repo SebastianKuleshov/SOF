@@ -41,6 +41,7 @@ class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
     accepted_answer_id: int | None
     votes: list[VoteOutSchema] | None = Field(None, exclude=True)
 
+    # Returns the difference of votes for the question.
     @computed_field
     @cached_property
     def votes_difference(self) -> int:
@@ -67,6 +68,7 @@ class QuestionForListOutSchema(QuestionOutSchema):
     answers: list[AnswerWithCommentsOutSchema] = Field(None, exclude=True)
     tags: list[TagOutSchema]
 
+    # Returns the number of answers for the question.
     @computed_field
     @cached_property
     def answer_count(self) -> int:
@@ -78,6 +80,9 @@ class QuestionWithJoinsOutSchema(QuestionForListOutSchema):
     comments: list[CommentOutSchema]
     current_user_id: int | None = Field(None, exclude=True)
 
+    # Checks if the current user has voted on the question.
+    # If the user has voted, it returns the VoteOutSchema.
+    # If the user has not voted, it returns None.
     @computed_field
     @cached_property
     def user_vote(self) -> VoteOutSchema | None:

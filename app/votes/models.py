@@ -8,8 +8,9 @@ from app.core.adapters.postgres.postgres_adapter import Base
 class VotesModel(Base):
     __tablename__ = 'votes'
     __table_args__ = (
-        UniqueConstraint('user_id', 'question_id'),
-        UniqueConstraint('user_id', 'answer_id'),
+        UniqueConstraint(
+            'user_id', 'question_id', 'answer_id', name='unique_user_vote'
+        ),
     )
 
     id: Mapped[int_pk]
