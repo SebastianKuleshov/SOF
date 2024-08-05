@@ -49,33 +49,29 @@ class QuestionService:
 
     async def get_question(
             self,
-            question_id: int
+            question_id: int,
+            user_id: int | None = None
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
-        votes_difference = await self.question_repository.get_question_votes_difference(
-            question_id
-        )
 
-        answers_votes_difference = await self.answer_repository.get_answers_votes_difference(
-            [answer.id for answer in question.answers]
-        )
-        answers_with_votes = [
-            {
-                **answer.__dict__,
-                'votes_difference': answers_votes_difference.get(answer.id, 0)
-            }
-            for answer in question.answers
-        ]
+        answers_with_user_vote = question.answers
+        if user_id:
+            answers_with_user_vote = [
+                {
+                    **answer.__dict__,
+                    'current_user_id': user_id
+                } for answer in question.answers
+            ]
 
         return QuestionWithJoinsOutSchema.model_validate(
             {
                 **question.__dict__,
-                'answers': answers_with_votes,
-                'votes_difference': votes_difference
+                'answers': answers_with_user_vote,
+                'current_user_id': user_id
             }
         )
 
@@ -91,14 +87,7 @@ class QuestionService:
         )
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers),
-                    'votes_difference':
-                        await self.question_repository.get_question_votes_difference(
-                            question.id
-                        )
-                }
+                question
             )
             for question in questions
         ]
@@ -113,15 +102,7 @@ class QuestionService:
         )
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers),
-                    'votes_difference':
-                        await self.question_repository.get_question_votes_difference(
-                            question.id
-                        )
-
-                }
+                question
             )
             for question in questions
         ]
@@ -133,14 +114,7 @@ class QuestionService:
         questions = await self.question_repository.get_questions_by_tag(tag_id)
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers),
-                    'votes_difference':
-                        await self.question_repository.get_question_votes_difference(
-                            question.id
-                        )
-                }
+                question
             )
             for question in questions
         ]
@@ -193,27 +167,8 @@ class QuestionService:
                 tags
             )
 
-        answers_votes_difference = await self.answer_repository.get_answers_votes_difference(
-            [answer.id for answer in question.answers]
-        )
-        answers_with_votes = [
-            {
-                **answer.__dict__,
-                'votes_difference': answers_votes_difference.get(answer.id, 0)
-            }
-            for answer in question.answers
-        ]
-
         return QuestionWithJoinsOutSchema.model_validate(
-            {
-                **question.__dict__,
-                'answers': answers_with_votes,
-                'votes_difference':
-                    await self.question_repository.get_question_votes_difference(
-                        question_id
-                    )
-            }
-
+            question
         )
 
     async def delete_question(

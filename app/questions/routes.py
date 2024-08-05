@@ -6,7 +6,8 @@ from fastapi.responses import JSONResponse
 from app.auth.services import AuthService
 from app.questions import schemas as question_schemas
 from app.questions.services import QuestionService
-from app.voting.services.voting import VotingService
+from app.votes import schemas as votes_schemas
+from app.votes.services.vote import VoteService
 
 router = APIRouter(
     prefix='/questions',
@@ -27,75 +28,64 @@ async def create_question(
 
 
 @router.post(
-    '/votes/upvote/{question_id}'
+    '/votes/upvote'
 )
 async def upvote_question(
-        voting_service: Annotated[VotingService, Depends()],
+        vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
-        question_id: int
+        vote: votes_schemas.VoteCreateSchema,
 ) -> JSONResponse:
-    return await voting_service.upvote(
-        'question',
-        question_id,
-        user.id
+    return await vote_service.create_vote(
+        vote,
+        user.id,
+        True
     )
 
 
 @router.post(
-    '/votes/downvote/{question_id}'
+    '/votes/downvote'
 )
 async def downvote_question(
-        voting_service: Annotated[VotingService, Depends()],
+        vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
-        question_id: int
+        vote: votes_schemas.VoteCreateSchema,
 ) -> JSONResponse:
-    return await voting_service.downvote(
-        'question',
-        question_id,
-        user.id
+    return await vote_service.create_vote(
+        vote,
+        user.id,
+        False
     )
 
 
-@router.post(
-    '/votes/revoke-upvote/{question_id}'
+@router.delete(
+    '/votes/revoke-upvote'
 )
 async def revoke_upvote_question(
-        voting_service: Annotated[VotingService, Depends()],
+        vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int
 ) -> JSONResponse:
-    return await voting_service.revoke_upvote(
+    return await vote_service.revoke_vote(
         'question',
         question_id,
-        user.id
+        user.id,
+        True
     )
 
 
-@router.post(
-    '/votes/revoke-downvote/{question_id}'
+@router.delete(
+    '/votes/revoke-downvote'
 )
 async def revoke_downvote_question(
-        voting_service: Annotated[VotingService, Depends()],
+        vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         question_id: int
 ) -> JSONResponse:
-    return await voting_service.revoke_downvote(
+    return await vote_service.revoke_vote(
         'question',
         question_id,
-        user.id
-    )
-
-
-@router.get('/votes/{question_id}')
-async def get_vote(
-        voting_service: Annotated[VotingService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
-        question_id: int
-) -> JSONResponse:
-    return await voting_service.get_vote(
-        'question',
-        question_id,
-        user.id
+        user.id,
+        False
     )
 
 
@@ -126,9 +116,23 @@ async def get_question(
 
 
 @router.get(
+    '/votes/{question_id}',
+    response_model=question_schemas.QuestionWithJoinsOutSchema
+)
+async def get_question_with_user_vote(
+        question_service: Annotated[QuestionService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        question_id: int
+):
+    return await question_service.get_question(
+        question_id,
+        user.id
+    )
+
+
+@router.get(
     '/user/{user_id}',
-    response_model=list[question_schemas.QuestionForListOutSchema],
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=list[question_schemas.QuestionForListOutSchema]
 )
 async def get_questions_by_user(
         question_service: Annotated[QuestionService, Depends()],
@@ -139,7 +143,6 @@ async def get_questions_by_user(
 
 @router.get(
     '/tag/{tag_id}',
-    dependencies=[Depends(AuthService.get_user_from_jwt)],
     response_model=list[question_schemas.QuestionForListOutSchema]
 )
 async def get_questions_by_tag(

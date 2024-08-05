@@ -57,12 +57,7 @@ class AnswerService:
             )
 
         return AnswerWithJoinsOutSchema.model_validate(
-            {
-                **answer.__dict__,
-                'votes_difference': await self.answer_repository.get_answer_votes_difference(
-                    answer_id
-                )
-            }
+            answer
         )
 
     async def update_answer(
@@ -84,12 +79,7 @@ class AnswerService:
         )
 
         return AnswerWithJoinsOutSchema.model_validate(
-            {
-                **answer.__dict__,
-                'votes_difference': await self.answer_repository.get_answer_votes_difference(
-                    answer_id
-                )
-            }
+            answer
         )
 
     async def delete_answer(

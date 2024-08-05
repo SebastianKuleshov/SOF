@@ -1,11 +1,13 @@
+from functools import cached_property
 from typing import Text
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.answers.schemas import AnswerWithCommentsOutSchema
 from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 from app.users.schemas import UserOutSchema
+from app.votes.schemas import VoteOutSchema
 
 
 class QuestionBaseSchema(BaseModel):
@@ -37,6 +39,16 @@ class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     user_id: int
     accepted_answer_id: int | None
+    votes: list[VoteOutSchema] | None = Field(None, exclude=True)
+
+    @computed_field
+    @cached_property
+    def votes_difference(self) -> int:
+        if self.votes:
+            upvotes = sum(vote.is_upvote for vote in self.votes)
+            downvotes = len(self.votes) - upvotes
+            return upvotes - downvotes
+        return 0
 
 
 class TagOutSchema(BaseModel):
@@ -52,14 +64,24 @@ class QuestionWithTagsOutSchema(QuestionOutSchema):
 
 class QuestionForListOutSchema(QuestionOutSchema):
     user: UserOutSchema
-    answer_count: int
+    answers: list[AnswerWithCommentsOutSchema] = Field(None, exclude=True)
     tags: list[TagOutSchema]
-    votes_difference: int
+
+    @computed_field
+    @cached_property
+    def answer_count(self) -> int:
+        return len(self.answers)
 
 
-class QuestionWithJoinsOutSchema(QuestionOutSchema):
-    user: UserOutSchema
+class QuestionWithJoinsOutSchema(QuestionForListOutSchema):
     answers: list[AnswerWithCommentsOutSchema]
     comments: list[CommentOutSchema]
-    tags: list[TagOutSchema]
-    votes_difference: int
+    current_user_id: int | None = Field(None, exclude=True)
+
+    @computed_field
+    @cached_property
+    def user_vote(self) -> VoteOutSchema | None:
+        vote_dict = {vote.user_id: vote for vote in self.votes}
+        print(self.current_user_id)
+        print(vote_dict)
+        return vote_dict.get(self.current_user_id, None)

@@ -1,6 +1,6 @@
 from typing import Text
 
-from sqlalchemy import ForeignKey, Table, Column, UniqueConstraint
+from sqlalchemy import ForeignKey, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
@@ -20,32 +20,6 @@ question_tag = Table(
         primary_key=True
     )
 )
-
-
-class QuestionVoteModel(Base):
-    __tablename__ = 'question_vote'
-
-    question_id: Mapped[int] = mapped_column(
-        ForeignKey('questions.id', ondelete='CASCADE'),
-        primary_key=True
-    )
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey('users.id', ondelete='CASCADE'),
-        primary_key=True
-    )
-    is_upvote: Mapped[bool]
-
-    user: Mapped['UserModel'] = relationship(
-        'UserModel',
-        back_populates='question_votes',
-        lazy='noload'
-    )
-
-    question: Mapped['QuestionModel'] = relationship(
-        'QuestionModel',
-        back_populates='votes',
-        lazy='noload'
-    )
 
 
 class QuestionModel(CreatedAtUpdatedAtMixin, Base):
@@ -84,8 +58,8 @@ class QuestionModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload'
     )
 
-    votes: Mapped[list['QuestionVoteModel']] = relationship(
-        'QuestionVoteModel',
+    votes: Mapped[list['VotesModel']] = relationship(
+        'VotesModel',
         back_populates='question',
         lazy='noload'
     )
