@@ -53,7 +53,7 @@ class AnswerWithCommentsOutSchema(AnswerOutSchema):
     # If the user has not voted, it returns None.
     @computed_field
     @cached_property
-    def user_vote(self) -> VoteOutSchema | None:
+    def current_user_vote(self) -> VoteOutSchema | None:
         vote_dict = {vote.user_id: vote for vote in self.votes}
         return vote_dict.get(self.current_user_id, None)
 

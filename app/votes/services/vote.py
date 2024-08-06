@@ -23,7 +23,7 @@ class VoteService:
         self.answer_repository = answer_repository
         self.user_repository = user_repository
 
-    async def _get_entity_repository(
+    async def __get_entity_repository(
             self,
             entity_type: str
     ) -> QuestionRepository | AnswerRepository:
@@ -44,7 +44,7 @@ class VoteService:
             user_id: int,
             is_upvote: bool
     ) -> VoteOutSchema:
-        repository = await self._get_entity_repository(entity_type)
+        repository = await self.__get_entity_repository(entity_type)
 
         entity_id = vote_schema.model_dump().get(f'{entity_type}_id')
         entity = await repository.get_entity_if_exists(entity_id)
@@ -91,7 +91,7 @@ class VoteService:
             user_id: int,
             is_upvote: bool
     ) -> bool:
-        repository = await self._get_entity_repository(entity_type)
+        repository = await self.__get_entity_repository(entity_type)
         vote = await self.vote_repository.get_one(
             {
                 'user_id': user_id,

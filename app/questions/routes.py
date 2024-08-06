@@ -27,13 +27,14 @@ async def create_question(
 
 
 @router.post(
-    '/votes/upvote'
+    '/votes/upvote',
+    response_model=vote_schemas.VoteOutSchema
 )
 async def upvote_question(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         vote: vote_schemas.VoteCreateSchema,
-) -> vote_schemas.VoteOutSchema:
+):
     return await vote_service.create_vote(
         vote,
         'question',
@@ -43,13 +44,14 @@ async def upvote_question(
 
 
 @router.post(
-    '/votes/downvote'
+    '/votes/downvote',
+    response_model=vote_schemas.VoteOutSchema
 )
 async def downvote_question(
         vote_service: Annotated[VoteService, Depends()],
         user: Annotated[AuthService.get_user_from_jwt, Depends()],
         vote: vote_schemas.VoteCreateSchema,
-) -> vote_schemas.VoteOutSchema:
+):
     return await vote_service.create_vote(
         vote,
         'question',
