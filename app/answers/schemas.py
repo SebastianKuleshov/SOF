@@ -1,10 +1,12 @@
+from functools import cached_property
 from typing import Text
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 
 from app.comments.schemas import CommentOutSchema
 from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
 from app.users.schemas import UserOutSchema
+from app.votes.schemas import VoteOutSchema
 
 
 class AnswerBaseSchema(BaseModel):
@@ -29,26 +31,32 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     user_id: int
     question_id: int
+    votes: list[VoteOutSchema] | None = Field(None, exclude=True)
 
-
-class AnswerWithUserOutSchema(AnswerOutSchema):
-    user: UserOutSchema
+    # Returns the difference of votes for the answer.
+    @computed_field
+    @cached_property
+    def votes_difference(self) -> int:
+        if self.votes:
+            upvotes = sum(vote.is_upvote for vote in self.votes)
+            downvotes = len(self.votes) - upvotes
+            return upvotes - downvotes
+        return 0
 
 
 class AnswerWithCommentsOutSchema(AnswerOutSchema):
     comments: list[CommentOutSchema]
+    current_user_id: int | None = Field(None, exclude=True)
 
-
-class QuestionOutSchema(CreatedAtUpdatedAtMixin, BaseModel):
-    id: int
-    title: str
-    body: Text
-    user_id: int
-    accepted_answer_id: int | None
-
-    model_config = ConfigDict(from_attributes=True)
+    # Checks if the current user has voted on the answer.
+    # If the user has voted, it returns the VoteOutSchema.
+    # If the user has not voted, it returns None.
+    @computed_field
+    @cached_property
+    def current_user_vote(self) -> VoteOutSchema | None:
+        vote_dict = {vote.user_id: vote for vote in self.votes}
+        return vote_dict.get(self.current_user_id, None)
 
 
 class AnswerWithJoinsOutSchema(AnswerOutSchema):
     user: UserOutSchema
-    question: QuestionOutSchema

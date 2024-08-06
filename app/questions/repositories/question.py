@@ -17,6 +17,7 @@ class QuestionRepository(BaseRepository):
             joinedload(self.model.user),
             joinedload(self.model.answers),
             joinedload(self.model.tags),
+            joinedload(self.model.votes)
         )
 
     async def attach_tags_to_question(
@@ -54,8 +55,13 @@ class QuestionRepository(BaseRepository):
             question_id: int
     ) -> QuestionModel:
         stmt = self._get_default_stmt().options(
-            joinedload(self.model.answers).joinedload(
-                AnswerModel.comments
+            joinedload(self.model.answers).options(
+                joinedload(
+                    AnswerModel.comments
+                ),
+                joinedload(
+                    AnswerModel.votes
+                )
             ),
             joinedload(self.model.comments)
         )

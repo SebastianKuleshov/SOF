@@ -49,14 +49,32 @@ class QuestionService:
 
     async def get_question(
             self,
-            question_id: int
+            question_id: int,
+            user_id: int | None = None
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_by_id_with_joins(
             question_id
         )
         if not question:
             raise HTTPException(status_code=404, detail='Question not found')
-        return QuestionWithJoinsOutSchema.model_validate(question)
+
+        # Checks if the current user has voted on the answers.
+        answers_with_user_vote = question.answers
+        if user_id:
+            answers_with_user_vote = [
+                {
+                    **answer.__dict__,
+                    'current_user_id': user_id
+                } for answer in question.answers
+            ]
+
+        return QuestionWithJoinsOutSchema.model_validate(
+            {
+                **question.__dict__,
+                'answers': answers_with_user_vote,
+                'current_user_id': user_id
+            }
+        )
 
     async def get_questions(
             self,
@@ -70,10 +88,7 @@ class QuestionService:
         )
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers)
-                }
+                question
             )
             for question in questions
         ]
@@ -88,10 +103,7 @@ class QuestionService:
         )
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers)
-                }
+                question
             )
             for question in questions
         ]
@@ -103,10 +115,7 @@ class QuestionService:
         questions = await self.question_repository.get_questions_by_tag(tag_id)
         return [
             QuestionForListOutSchema.model_validate(
-                {
-                    **question.__dict__,
-                    'answer_count': len(question.answers)
-                }
+                question
             )
             for question in questions
         ]
@@ -135,9 +144,13 @@ class QuestionService:
                 status_code=403,
                 detail='You are not allowed to update this question'
             )
+        update_schema = QuestionUpdateSchema(
+            **question_payload_schema.model_dump(exclude_unset=True)
+        )
+
         await self.question_repository.update(
             question_id,
-            QuestionUpdateSchema(**question_payload_schema.__dict__)
+            update_schema
         )
 
         await self.question_repository.expire_session_for_all()
@@ -155,7 +168,9 @@ class QuestionService:
                 tags
             )
 
-        return QuestionWithJoinsOutSchema.model_validate(question)
+        return QuestionWithJoinsOutSchema.model_validate(
+            question
+        )
 
     async def delete_question(
             self,

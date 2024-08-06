@@ -1,0 +1,1 @@
+from app.votes.repository.vote import VoteRepository

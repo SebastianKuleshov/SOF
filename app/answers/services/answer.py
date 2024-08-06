@@ -55,7 +55,10 @@ class AnswerService:
                 status_code=404,
                 detail='Answer not found'
             )
-        return AnswerWithJoinsOutSchema.model_validate(answer)
+
+        return AnswerWithJoinsOutSchema.model_validate(
+            answer
+        )
 
     async def update_answer(
             self,
@@ -74,7 +77,10 @@ class AnswerService:
         answer = await self.answer_repository.get_by_id_with_joins(
             answer_id
         )
-        return AnswerWithJoinsOutSchema.model_validate(answer)
+
+        return AnswerWithJoinsOutSchema.model_validate(
+            answer
+        )
 
     async def delete_answer(
             self,

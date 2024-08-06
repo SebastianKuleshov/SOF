@@ -37,3 +37,9 @@ class AnswerModel(CreatedAtUpdatedAtMixin, Base):
         back_populates='answer',
         lazy='noload'
     )
+
+    votes: Mapped[list['VotesModel']] = relationship(
+        'VotesModel',
+        back_populates='answer',
+        lazy='noload'
+    )

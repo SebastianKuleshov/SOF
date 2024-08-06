@@ -11,5 +11,6 @@ class AnswerRepository(BaseRepository):
     def _get_default_stmt(self) -> Select:
         return select(self.model).options(
             joinedload(self.model.user),
-            joinedload(self.model.question)
+            joinedload(self.model.question),
+            joinedload(self.model.votes)
         )

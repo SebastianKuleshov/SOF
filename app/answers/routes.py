@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends
 from app.answers import schemas as answer_schemas
 from app.answers.services import AnswerService
 from app.auth.services import AuthService
+from app.votes import schemas as vote_schemas
+from app.votes.services.vote import VoteService
 
 router = APIRouter(
     prefix='/answers',
@@ -19,6 +21,72 @@ async def create_answer(
         user: Annotated[AuthService.get_user_from_jwt, Depends()]
 ):
     return await answer_service.create_answer(answer, user.id)
+
+
+@router.post(
+    '/votes/upvote',
+    response_model=vote_schemas.VoteOutSchema
+)
+async def upvote_answer(
+        vote_service: Annotated[VoteService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        vote: vote_schemas.VoteCreateSchema,
+):
+    return await vote_service.create_vote(
+        vote,
+        'answer',
+        user.id,
+        True
+    )
+
+
+@router.post(
+    '/votes/downvote',
+    response_model=vote_schemas.VoteOutSchema
+)
+async def downvote_answer(
+        vote_service: Annotated[VoteService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        vote: vote_schemas.VoteCreateSchema,
+):
+    return await vote_service.create_vote(
+        vote,
+        'answer',
+        user.id,
+        False
+    )
+
+
+@router.delete(
+    '/votes/revoke-upvote'
+)
+async def revoke_upvote_answer(
+        vote_service: Annotated[VoteService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        answer_id: int,
+) -> bool:
+    return await vote_service.revoke_vote(
+        'answer',
+        answer_id,
+        user.id,
+        True
+    )
+
+
+@router.delete(
+    '/votes/revoke-downvote'
+)
+async def revoke_downvote_answer(
+        vote_service: Annotated[VoteService, Depends()],
+        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        answer_id: int,
+) -> bool:
+    return await vote_service.revoke_vote(
+        'answer',
+        answer_id,
+        user.id,
+        False
+    )
 
 
 @router.get(
