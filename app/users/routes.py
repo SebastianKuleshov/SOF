@@ -59,7 +59,7 @@ async def get_current_user(
 
 @router.put(
     '/{user_id}',
-    response_model=user_schemas.UserUpdateSchema
+    response_model=user_schemas.UserOutSchema
 )
 async def update_user(
         user_service: Annotated[UserService, Depends()],

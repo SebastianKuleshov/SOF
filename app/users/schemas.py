@@ -70,3 +70,5 @@ class UserUpdateSchema(UserBaseSchema):
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     nick_name: str
+    biography: str | None = None
+    reputation: int
