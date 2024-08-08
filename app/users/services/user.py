@@ -35,7 +35,7 @@ class UserService:
             target_user_id: int,
             requesting_user_id: int,
             user_schema: UserUpdateSchema
-    ) -> UserUpdateSchema:
+    ) -> UserOutSchema:
         user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
             raise HTTPException(
@@ -44,7 +44,7 @@ class UserService:
             )
 
         try:
-            user_model = await self.user_repository.update(
+            await self.user_repository.update(
                 target_user_id,
                 user_schema
             )
@@ -54,7 +54,10 @@ class UserService:
                 detail='Email already exists'
             )
 
-        return UserUpdateSchema.model_validate(user_model)
+        user_model = await self.user_repository.get_by_id(
+            target_user_id
+        )
+        return UserOutSchema.model_validate(user_model)
 
     async def delete_user(
             self,
