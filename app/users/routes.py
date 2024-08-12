@@ -1,18 +1,26 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.auth.services import AuthService
 from app.users import schemas as user_schemas
 from app.users.services import UserService
 
-router = APIRouter(
+public_router = APIRouter(
     prefix='/users',
     tags=['users']
 )
 
+private_router = APIRouter(
+    prefix='/users',
+    tags=['users'],
+    dependencies=[Depends(AuthService.get_user_from_jwt)]
+)
 
-@router.post(
+
+# Public routes
+
+@public_router.post(
     '/',
     response_model=user_schemas.UserOutSchema
 )
@@ -23,10 +31,9 @@ async def create_user(
     return await user_service.create_user(user)
 
 
-@router.get(
+@public_router.get(
     '/',
-    response_model=list[user_schemas.UserOutSchema],
-    dependencies=[Depends(AuthService.get_user_from_jwt)]
+    response_model=list[user_schemas.UserOutSchema]
 )
 async def get_users(
         user_service: Annotated[UserService, Depends()],
@@ -36,53 +43,59 @@ async def get_users(
     return await user_service.user_repository.get_multi(skip, limit)
 
 
-@router.get(
+@public_router.get(
     '/{user_id}',
     response_model=user_schemas.UserOutSchema
 )
 async def get_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: int
+        user_id: int = Annotated[
+            AuthService.get_user_id_from_request, Depends()]
 ):
     return await user_service.user_repository.get_by_id(user_id)
 
 
-@router.get(
+# Private routes
+
+@private_router.get(
     '/me',
     response_model=user_schemas.UserOutSchema
 )
 async def get_current_user(
-        user: Annotated[AuthService.get_user_from_jwt, Depends()]
+        user_service: Annotated[UserService, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
 ):
-    return user
+    return await user_service.user_repository.get_by_id(user_id)
 
 
-@router.put(
+@private_router.put(
     '/{user_id}',
     response_model=user_schemas.UserOutSchema
 )
 async def update_user(
         user_service: Annotated[UserService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        request: Request,
         user_id: int,
         user_schema: user_schemas.UserUpdateSchema
 ):
+    requesting_user_id = await AuthService.get_user_id_from_request(request)
     return await user_service.update_user(
         user_id,
-        user.id,
+        requesting_user_id,
         user_schema
     )
 
 
-@router.delete(
+@private_router.delete(
     '/{user_id}'
 )
 async def delete_current_user(
         user_service: Annotated[UserService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        request: Request,
         user_id: int
 ) -> bool:
+    requesting_user_id = await AuthService.get_user_id_from_request(request)
     return await user_service.delete_user(
         user_id,
-        user.id
+        requesting_user_id
     )

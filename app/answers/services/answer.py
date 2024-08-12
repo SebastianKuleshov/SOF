@@ -43,23 +43,6 @@ class AnswerService:
                 detail='You have already answered this question'
             )
 
-    async def get_answer(
-            self,
-            answer_id: int
-    ) -> AnswerWithJoinsOutSchema:
-        answer = await self.answer_repository.get_by_id_with_joins(
-            answer_id
-        )
-        if not answer:
-            raise HTTPException(
-                status_code=404,
-                detail='Answer not found'
-            )
-
-        return AnswerWithJoinsOutSchema.model_validate(
-            answer
-        )
-
     async def update_answer(
             self,
             answer_id: int,

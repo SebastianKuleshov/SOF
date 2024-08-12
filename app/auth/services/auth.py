@@ -2,7 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
@@ -43,9 +43,20 @@ class AuthService:
         )
         return encoded_jwt
 
+    @staticmethod
+    async def get_user_id_from_request(request: Request) -> int:
+        if not hasattr(request.state, 'user_id'):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Could not validate credentials',
+                headers={'WWW-Authenticate': 'Bearer'},
+            )
+        return request.state.user_id
+
     @classmethod
     async def get_user_from_jwt(
             cls,
+            request: Request,
             user_repository: Annotated[UserRepository, Depends()],
             is_refresh: bool = False,
             token: str = Depends(oauth2_scheme)
@@ -76,6 +87,7 @@ class AuthService:
         if user is None:
             raise credentials_exception
 
+        request.state.user_id = user_id
         return user
 
     async def __generate_token(
@@ -144,9 +156,11 @@ class AuthService:
 
     async def refresh(
             self,
+            request: Request,
             refresh_token: str
     ) -> TokenBaseSchema:
         user = await self.get_user_from_jwt(
+            request,
             self.user_repository,
             True,
             refresh_token

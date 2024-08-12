@@ -93,33 +93,6 @@ class QuestionService:
             for question in questions
         ]
 
-    async def get_questions_by_user(
-            self,
-            user_id: int
-    ) -> list[QuestionForListOutSchema]:
-        await self.user_repository.get_entity_if_exists(user_id)
-        questions = await self.question_repository.get_multi_with_joins(
-            {'user_id': user_id}
-        )
-        return [
-            QuestionForListOutSchema.model_validate(
-                question
-            )
-            for question in questions
-        ]
-
-    async def get_questions_by_tag(
-            self,
-            tag_id: int
-    ) -> list[QuestionForListOutSchema]:
-        questions = await self.question_repository.get_questions_by_tag(tag_id)
-        return [
-            QuestionForListOutSchema.model_validate(
-                question
-            )
-            for question in questions
-        ]
-
     async def update_question(
             self,
             question_id: int,
