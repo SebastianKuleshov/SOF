@@ -6,13 +6,13 @@ from app.auth.services import AuthService
 from app.comments import schemas as comments_schemas
 from app.comments.services import CommentService
 
-private_router = APIRouter(
+router = APIRouter(
     prefix='/comments',
     tags=['comments']
 )
 
 
-@private_router.post(
+@router.post(
     '/',
     response_model=comments_schemas.CommentOutSchema
 )
@@ -27,7 +27,7 @@ async def create_comment(
     )
 
 
-@private_router.put(
+@router.put(
     '/{comment_id}',
     response_model=comments_schemas.CommentOutSchema
 )
@@ -44,7 +44,7 @@ async def update_comment(
     )
 
 
-@private_router.delete(
+@router.delete(
     '/{comment_id}'
 )
 async def delete_comment(

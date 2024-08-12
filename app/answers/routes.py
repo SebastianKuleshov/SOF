@@ -8,14 +8,14 @@ from app.auth.services import AuthService
 from app.votes import schemas as vote_schemas
 from app.votes.services.vote import VoteService
 
-private_router = APIRouter(
+router = APIRouter(
     prefix='/answers',
     tags=['answers'],
     dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 
 
-@private_router.post('/', response_model=answer_schemas.AnswerOutSchema)
+@router.post('/', response_model=answer_schemas.AnswerOutSchema)
 async def create_answer(
         answer_service: Annotated[AnswerService, Depends()],
         user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
@@ -24,7 +24,7 @@ async def create_answer(
     return await answer_service.create_answer(answer, user_id)
 
 
-@private_router.post(
+@router.post(
     '/votes/upvote',
     response_model=vote_schemas.VoteOutSchema
 )
@@ -41,7 +41,7 @@ async def upvote_answer(
     )
 
 
-@private_router.post(
+@router.post(
     '/votes/downvote',
     response_model=vote_schemas.VoteOutSchema
 )
@@ -58,7 +58,7 @@ async def downvote_answer(
     )
 
 
-@private_router.delete(
+@router.delete(
     '/votes/revoke-upvote'
 )
 async def revoke_upvote_answer(
@@ -74,7 +74,7 @@ async def revoke_upvote_answer(
     )
 
 
-@private_router.delete(
+@router.delete(
     '/votes/revoke-downvote'
 )
 async def revoke_downvote_answer(
@@ -90,7 +90,7 @@ async def revoke_downvote_answer(
     )
 
 
-@private_router.put(
+@router.put(
     '/{answer_id}',
     response_model=answer_schemas.AnswerWithJoinsOutSchema
 )
@@ -107,7 +107,7 @@ async def update_answer(
     )
 
 
-@private_router.delete(
+@router.delete(
     '/{answer_id}'
 )
 async def delete_answer(

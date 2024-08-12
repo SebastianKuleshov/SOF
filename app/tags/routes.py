@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends
 from app.tags import schemas as tag_schemas
 from app.tags.services import TagService
 
-public_router = APIRouter(
+router = APIRouter(
     prefix='/tags',
     tags=['tags']
 )
 
 
-@public_router.get('/', response_model=list[tag_schemas.TagOutSchema])
+@router.get('/', response_model=list[tag_schemas.TagOutSchema])
 async def get_tags(
         tag_service: Annotated[TagService, Depends()],
         skip: int = 0,
@@ -20,7 +20,7 @@ async def get_tags(
     return await tag_service.tag_repository.get_multi(skip, limit)
 
 
-@public_router.get(
+@router.get(
     '/{tag_id}',
     response_model=tag_schemas.TagOutSchema
 )
