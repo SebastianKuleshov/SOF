@@ -84,7 +84,7 @@ class SearchService:
         conditions_map = {
             'scores':
                 lambda
-                        scores_query: self.question_repository.build_scores_conditions(
+                    scores_query: self.question_repository.build_scores_conditions(
                     scores_query, vote_difference_subquery
                 ),
             'strict_text': self.question_repository.build_strict_conditions,

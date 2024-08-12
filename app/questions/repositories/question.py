@@ -99,7 +99,7 @@ class QuestionRepository(BaseRepository):
         stmt = self._get_default_stmt()
         stmt = (
             stmt
-            .join(AnswerModel, AnswerModel.question_id == self.model.id)
+            .outerjoin(AnswerModel, AnswerModel.question_id == self.model.id)
             .outerjoin(
                 vote_difference_subquery,
                 vote_difference_subquery.c.question_id == self.model.id,
@@ -238,7 +238,7 @@ class QuestionRepository(BaseRepository):
                 boolean_conditions.append(
                     self.model.answers.any()
                     if value in ['true', 'yes', '1']
-                    else not self.model.answers.any()
+                    else ~self.model.answers.any()
                 )
 
         return boolean_conditions
