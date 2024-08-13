@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Sequence
 
 from fastapi import HTTPException
-from sqlalchemy import Select, select, func, Subquery, case
+from sqlalchemy import Select, select, func, Subquery, case, and_
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
@@ -96,9 +96,12 @@ class QuestionRepository(BaseRepository):
             self,
             vote_difference_subquery: Subquery
     ) -> Select:
-        stmt = self._get_default_stmt()
         stmt = (
-            stmt
+            select(self.model).options(
+                joinedload(self.model.user),
+                joinedload(self.model.tags),
+                joinedload(self.model.votes)
+            )
             .outerjoin(AnswerModel, AnswerModel.question_id == self.model.id)
             .outerjoin(
                 vote_difference_subquery,
@@ -109,35 +112,39 @@ class QuestionRepository(BaseRepository):
 
     @staticmethod
     async def build_scores_conditions(
+            stmt: Select,
             score_params: list,
             vote_difference_subquery: Subquery
-    ) -> list:
+    ) -> Select:
         score_conditions = []
-        for score in score_params:
-            if score[1] == '..' or score[1] == '-':
-                if score[0]:
+        for param in score_params:
+            if param['operator'] in ['..', '-']:
+                if param['min_score']:
                     score_conditions.append(
                         vote_difference_subquery.c.vote_difference >= int(
-                            score[0]
+                            param['min_score']
                         )
                     )
-                if score[2]:
+                if param['max_score']:
                     score_conditions.append(
                         vote_difference_subquery.c.vote_difference <= int(
-                            score[2]
+                            param['max_score']
                         )
                     )
             else:
                 score_conditions.append(
-                    vote_difference_subquery.c.vote_difference >= int(score[0])
+                    vote_difference_subquery.c.vote_difference >= int(
+                        param['min_score']
+                    )
                 )
 
-        return score_conditions
+        return stmt.where(and_(*score_conditions))
 
     async def build_strict_conditions(
             self,
+            stmt: Select,
             strict_params: list
-    ) -> list:
+    ) -> Select:
         strict_conditions = []
         for field, term in strict_params:
             if field == "body":
@@ -152,12 +159,13 @@ class QuestionRepository(BaseRepository):
                         AnswerModel.body
                     ).ilike(f"%{term}%")
                 )
-        return strict_conditions
+        return stmt.where(and_(*strict_conditions))
 
     async def build_tags_conditions(
             self,
+            stmt: Select,
             tags_params: list
-    ) -> list:
+    ) -> Select:
         tags_conditions = []
         for is_negative, tag in tags_params:
             condition = self.model.tags.any(
@@ -167,17 +175,18 @@ class QuestionRepository(BaseRepository):
                 condition = ~condition
             tags_conditions.append(condition)
 
-        return tags_conditions
+        return stmt.where(and_(*tags_conditions))
 
     async def build_users_conditions(
             self,
+            stmt: Select,
             users_params: list
-    ) -> list:
+    ) -> Select:
         users_conditions = [
             self.model.user_id == int(user_id)
             for user_id in users_params
         ]
-        return users_conditions
+        return stmt.where(and_(*users_conditions))
 
     @staticmethod
     async def __parse_date(
@@ -198,34 +207,36 @@ class QuestionRepository(BaseRepository):
 
     async def build_dates_conditions(
             self,
+            stmt: Select,
             date_params: tuple
-    ) -> list:
+    ) -> Select:
         date_conditions = []
 
         for date in date_params:
             field = (
-                self.model.created_at if date[0] == 'created'
+                self.model.created_at if date['field'] == 'created'
                 else self.model.updated_at
             )
 
-            if date[2]:
+            if date['operator']:
                 date_conditions.append(
                     field.between(
-                        await self.__parse_date(date[1]),
-                        await self.__parse_date(date[3])
+                        await self.__parse_date(date['start_date']),
+                        await self.__parse_date(date['end_date'])
                     )
                 )
             else:
                 date_conditions.append(
-                    field >= await self.__parse_date(date[1])
+                    field >= await self.__parse_date(date['start_date'])
                 )
 
-        return date_conditions
+        return stmt.where(and_(*date_conditions))
 
     async def build_booleans_conditions(
             self,
+            stmt: Select,
             boolean_params: list
-    ) -> list:
+    ) -> Select:
         boolean_conditions = []
         for field, value in boolean_params:
             if field == 'hasaccepted':
@@ -241,7 +252,7 @@ class QuestionRepository(BaseRepository):
                     else ~self.model.answers.any()
                 )
 
-        return boolean_conditions
+        return stmt.where(and_(*boolean_conditions))
 
     async def fetch_questions_search(
             self,
