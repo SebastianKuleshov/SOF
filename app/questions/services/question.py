@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
-from app.questions.repositories import QuestionRepository
+from app.common.services import SearchService
+from app.questions.repositories import QuestionRepository, SearchQueryBuilder
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
     QuestionWithTagsOutSchema, QuestionCreatePayloadSchema, \
@@ -18,12 +19,14 @@ class QuestionService:
             question_repository: Annotated[QuestionRepository, Depends()],
             user_repository: Annotated[UserRepository, Depends()],
             answer_repository: Annotated[AnswerRepository, Depends()],
-            tag_repository: Annotated[TagRepository, Depends()]
+            tag_repository: Annotated[TagRepository, Depends()],
+            search_service: Annotated[SearchService, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
         self.answer_repository = answer_repository
         self.tag_repository = tag_repository
+        self.search_service = search_service
 
     async def create_question(
             self,
@@ -186,3 +189,39 @@ class QuestionService:
                 detail='You are not allowed to delete this question'
             )
         return await self.question_repository.delete(question_id)
+
+    async def search(
+            self,
+            query: str
+    ) -> list[QuestionForListOutSchema]:
+        parsed_query = await self.search_service.parse_query(query)
+
+        builder = await SearchQueryBuilder(
+            self.question_repository
+        ).initialize()
+
+        for key, value in parsed_query.items():
+            match key:
+                case 'scores':
+                    builder = await builder.apply_scores_conditions(value)
+                case 'strict_text':
+                    builder = await builder.apply_strict_conditions(value)
+                case 'tags':
+                    builder = await builder.apply_tags_conditions(value)
+                case 'users':
+                    builder = await builder.apply_users_conditions(value)
+                case 'dates':
+                    builder = await builder.apply_dates_conditions(value)
+                case 'booleans':
+                    builder = await builder.apply_booleans_conditions(value)
+
+        stmt = builder.get_statement()
+
+        questions = await self.question_repository.fetch_questions_search(stmt)
+
+        return [
+            QuestionForListOutSchema.model_validate(
+                question
+            )
+            for question in questions
+        ]
