@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.common.services import SearchService
-from app.questions.repositories import QuestionRepository, SearchQueryBuilder
+from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
     QuestionWithTagsOutSchema, QuestionCreatePayloadSchema, \
@@ -196,26 +196,59 @@ class QuestionService:
     ) -> list[QuestionForListOutSchema]:
         parsed_query = await self.search_service.parse_query(query)
 
-        builder = await SearchQueryBuilder(
-            self.question_repository
-        ).initialize()
+        vote_difference_subquery = (
+            await self.question_repository.get_vote_difference_subquery()
+        )
+
+        stmt = await self.question_repository.get_searching_stmt(
+            vote_difference_subquery
+        )
 
         for key, value in parsed_query.items():
             match key:
                 case 'scores':
-                    builder = await builder.apply_scores_conditions(value)
+                    stmt = await (
+                        self.question_repository.apply_scores_conditions(
+                            stmt,
+                            value,
+                            vote_difference_subquery
+                        )
+                    )
                 case 'strict_text':
-                    builder = await builder.apply_strict_conditions(value)
+                    stmt = await (
+                        self.question_repository.apply_strict_conditions(
+                            stmt,
+                            value
+                        )
+                    )
                 case 'tags':
-                    builder = await builder.apply_tags_conditions(value)
+                    stmt = await (
+                        self.question_repository.apply_tags_conditions(
+                            stmt,
+                            value
+                        )
+                    )
                 case 'users':
-                    builder = await builder.apply_users_conditions(value)
+                    stmt = await (
+                        self.question_repository.apply_users_conditions(
+                            stmt,
+                            value
+                        )
+                    )
                 case 'dates':
-                    builder = await builder.apply_dates_conditions(value)
+                    stmt = await (
+                        self.question_repository.apply_dates_conditions(
+                            stmt,
+                            value
+                        )
+                    )
                 case 'booleans':
-                    builder = await builder.apply_booleans_conditions(value)
-
-        stmt = builder.get_statement()
+                    stmt = await (
+                        self.question_repository.apply_booleans_conditions(
+                            stmt,
+                            value
+                        )
+                    )
 
         questions = await self.question_repository.fetch_questions_search(stmt)
 
