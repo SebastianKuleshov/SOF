@@ -10,17 +10,18 @@ from app.votes.services.vote import VoteService
 
 router = APIRouter(
     prefix='/answers',
-    tags=['answers']
+    tags=['answers'],
+    dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 
 
 @router.post('/', response_model=answer_schemas.AnswerOutSchema)
 async def create_answer(
         answer_service: Annotated[AnswerService, Depends()],
-        answer: answer_schemas.AnswerCreateSchema,
-        user: Annotated[AuthService.get_user_from_jwt, Depends()]
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
+        answer: answer_schemas.AnswerCreateSchema
 ):
-    return await answer_service.create_answer(answer, user.id)
+    return await answer_service.create_answer(answer, user_id)
 
 
 @router.post(
@@ -29,13 +30,13 @@ async def create_answer(
 )
 async def upvote_answer(
         vote_service: Annotated[VoteService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         vote: vote_schemas.VoteCreateSchema,
 ):
     return await vote_service.create_vote(
         vote,
         'answer',
-        user.id,
+        user_id,
         True
     )
 
@@ -46,13 +47,13 @@ async def upvote_answer(
 )
 async def downvote_answer(
         vote_service: Annotated[VoteService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         vote: vote_schemas.VoteCreateSchema,
 ):
     return await vote_service.create_vote(
         vote,
         'answer',
-        user.id,
+        user_id,
         False
     )
 
@@ -62,13 +63,13 @@ async def downvote_answer(
 )
 async def revoke_upvote_answer(
         vote_service: Annotated[VoteService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         answer_id: int,
 ) -> bool:
     return await vote_service.revoke_vote(
         'answer',
         answer_id,
-        user.id,
+        user_id,
         True
     )
 
@@ -78,41 +79,15 @@ async def revoke_upvote_answer(
 )
 async def revoke_downvote_answer(
         vote_service: Annotated[VoteService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         answer_id: int,
 ) -> bool:
     return await vote_service.revoke_vote(
         'answer',
         answer_id,
-        user.id,
+        user_id,
         False
     )
-
-
-@router.get(
-    '/',
-    response_model=list[answer_schemas.AnswerOutSchema]
-)
-async def get_answers(
-        answer_service: Annotated[AnswerService, Depends()],
-        skip: int = 0,
-        limit: int = 100
-):
-    return await answer_service.answer_repository.get_multi(
-        skip,
-        limit
-    )
-
-
-@router.get(
-    '/{answer_id}',
-    response_model=answer_schemas.AnswerWithJoinsOutSchema
-)
-async def get_answer(
-        answer_service: Annotated[AnswerService, Depends()],
-        answer_id: int
-):
-    return await answer_service.get_answer(answer_id)
 
 
 @router.put(
@@ -121,13 +96,13 @@ async def get_answer(
 )
 async def update_answer(
         answer_service: Annotated[AnswerService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         answer_id: int,
         answer: answer_schemas.AnswerUpdateSchema
 ):
     return await answer_service.update_answer(
         answer_id,
-        user.id,
+        user_id,
         answer
     )
 
@@ -137,10 +112,10 @@ async def update_answer(
 )
 async def delete_answer(
         answer_service: Annotated[AnswerService, Depends()],
-        user: Annotated[AuthService.get_user_from_jwt, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
         answer_id: int
 ) -> bool:
     return await answer_service.delete_answer(
         answer_id,
-        user.id
+        user_id
     )
