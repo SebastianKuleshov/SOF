@@ -6,11 +6,12 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
+from app.auth.repositories.auth import AuthRepository
 from app.auth.schemas import TokenBaseSchema
-from app.users.models import UserModel
-from app.users.schemas import UserOutSchema
-from app.users.repositories import UserRepository
 from app.dependencies import get_settings, oauth2_scheme, verify_password
+from app.users.models import UserModel
+from app.users.repositories import UserRepository
+from app.users.schemas import UserOutSchema
 from app.users.services import UserService
 
 
@@ -18,9 +19,11 @@ class AuthService:
     def __init__(
             self,
             user_repository: Annotated[UserRepository, Depends()],
+            auth_repository: Annotated[AuthRepository, Depends()],
             user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.user_repository = user_repository
+        self.auth_repository = auth_repository
         self.user_service = user_service
 
     @staticmethod
@@ -120,6 +123,11 @@ class AuthService:
             refresh_token_expire_delta
         )
 
+        await self.auth_repository.create(
+            user_id,
+            refresh_token
+        )
+
         return TokenBaseSchema(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -165,5 +173,17 @@ class AuthService:
             True,
             refresh_token
         )
+
+        token = await self.auth_repository.get(
+            user.id,
+            refresh_token
+        )
+
+        await self.auth_repository.delete_user_tokens(user.id)
+        if not token:
+            raise HTTPException(
+                status_code=400,
+                detail='Token is invalid'
+            )
 
         return await self.__generate_token(user.id, user.nick_name)
