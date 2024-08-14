@@ -87,6 +87,4 @@ class QuestionWithJoinsOutSchema(QuestionForListOutSchema):
     @cached_property
     def current_user_vote(self) -> VoteOutSchema | None:
         vote_dict = {vote.user_id: vote for vote in self.votes}
-        print(self.current_user_id)
-        print(vote_dict)
         return vote_dict.get(self.current_user_id, None)

@@ -13,6 +13,26 @@ router = APIRouter(
     tags=['questions']
 )
 
+search_router = APIRouter(
+    prefix='/search',
+    tags=['search']
+)
+
+
+# Search routes
+
+@search_router.get(
+    '',
+    response_model=list[question_schemas.QuestionForListOutSchema]
+)
+async def search(
+        question_service: Annotated[QuestionService, Depends()],
+        query: str
+):
+    return await question_service.search(query)
+
+
+# Question routes
 
 @router.post(
     '/',

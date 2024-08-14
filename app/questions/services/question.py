@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
+from app.common.services import SearchService
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
@@ -18,12 +19,14 @@ class QuestionService:
             question_repository: Annotated[QuestionRepository, Depends()],
             user_repository: Annotated[UserRepository, Depends()],
             answer_repository: Annotated[AnswerRepository, Depends()],
-            tag_repository: Annotated[TagRepository, Depends()]
+            tag_repository: Annotated[TagRepository, Depends()],
+            search_service: Annotated[SearchService, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
         self.answer_repository = answer_repository
         self.tag_repository = tag_repository
+        self.search_service = search_service
 
     async def create_question(
             self,
@@ -186,3 +189,72 @@ class QuestionService:
                 detail='You are not allowed to delete this question'
             )
         return await self.question_repository.delete(question_id)
+
+    async def search(
+            self,
+            query: str
+    ) -> list[QuestionForListOutSchema]:
+        parsed_query = await self.search_service.parse_query(query)
+
+        vote_difference_subquery = (
+            await self.question_repository.get_vote_difference_subquery()
+        )
+
+        stmt = await self.question_repository.get_searching_stmt(
+            vote_difference_subquery
+        )
+
+        for key, value in parsed_query.items():
+            match key:
+                case 'scores':
+                    stmt = await (
+                        self.question_repository.apply_scores_conditions(
+                            stmt,
+                            value,
+                            vote_difference_subquery
+                        )
+                    )
+                case 'strict_text':
+                    stmt = await (
+                        self.question_repository.apply_strict_conditions(
+                            stmt,
+                            value
+                        )
+                    )
+                case 'tags':
+                    stmt = await (
+                        self.question_repository.apply_tags_conditions(
+                            stmt,
+                            value
+                        )
+                    )
+                case 'users':
+                    stmt = await (
+                        self.question_repository.apply_users_conditions(
+                            stmt,
+                            value
+                        )
+                    )
+                case 'dates':
+                    stmt = await (
+                        self.question_repository.apply_dates_conditions(
+                            stmt,
+                            value
+                        )
+                    )
+                case 'booleans':
+                    stmt = await (
+                        self.question_repository.apply_booleans_conditions(
+                            stmt,
+                            value
+                        )
+                    )
+
+        questions = await self.question_repository.fetch_questions_search(stmt)
+
+        return [
+            QuestionForListOutSchema.model_validate(
+                question
+            )
+            for question in questions
+        ]
