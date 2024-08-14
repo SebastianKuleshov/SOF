@@ -29,6 +29,14 @@ class AuthRepository:
         key = f'{user_id}:{token}'
         return await self.redis.get(key)
 
+    async def delete_user_token(
+            self,
+            user_id: int,
+            token: str
+    ) -> bool:
+        key = f'{user_id}:{token}'
+        return await self.redis.delete(key)
+
     async def delete_user_tokens(
             self,
             user_id: int

@@ -179,11 +179,16 @@ class AuthService:
             refresh_token
         )
 
-        await self.auth_repository.delete_user_tokens(user.id)
         if not token:
+            await self.auth_repository.delete_user_tokens(user.id)
             raise HTTPException(
                 status_code=400,
                 detail='Token is invalid'
             )
+
+        await self.auth_repository.delete_user_token(
+            user.id,
+            refresh_token
+        )
 
         return await self.__generate_token(user.id, user.nick_name)
