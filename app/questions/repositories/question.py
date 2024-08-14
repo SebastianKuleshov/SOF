@@ -111,7 +111,7 @@ class QuestionRepository(BaseRepository):
         return stmt
 
     @staticmethod
-    async def build_scores_conditions(
+    async def apply_scores_conditions(
             stmt: Select,
             score_params: list,
             vote_difference_subquery: Subquery
@@ -140,7 +140,7 @@ class QuestionRepository(BaseRepository):
 
         return stmt.where(and_(*score_conditions))
 
-    async def build_strict_conditions(
+    async def apply_strict_conditions(
             self,
             stmt: Select,
             strict_params: list
@@ -161,7 +161,7 @@ class QuestionRepository(BaseRepository):
                 )
         return stmt.where(and_(*strict_conditions))
 
-    async def build_tags_conditions(
+    async def apply_tags_conditions(
             self,
             stmt: Select,
             tags_params: list
@@ -177,7 +177,7 @@ class QuestionRepository(BaseRepository):
 
         return stmt.where(and_(*tags_conditions))
 
-    async def build_users_conditions(
+    async def apply_users_conditions(
             self,
             stmt: Select,
             users_params: list
@@ -205,7 +205,7 @@ class QuestionRepository(BaseRepository):
             detail='Invalid date format'
         )
 
-    async def build_dates_conditions(
+    async def apply_dates_conditions(
             self,
             stmt: Select,
             date_params: tuple
@@ -232,7 +232,7 @@ class QuestionRepository(BaseRepository):
 
         return stmt.where(and_(*date_conditions))
 
-    async def build_booleans_conditions(
+    async def apply_booleans_conditions(
             self,
             stmt: Select,
             boolean_params: list

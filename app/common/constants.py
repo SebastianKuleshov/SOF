@@ -1,4 +1,4 @@
-patterns = {
+PATTERNS = {
     "tags": r"(-)?\[(.*?)]",
     "strict": r"(title|body)?:?\"(.*?)\"",
     "score": r"score:"
