@@ -1,2 +1,1 @@
 from app.questions.repositories.question import QuestionRepository
-from app.questions.repositories.query_builder import SearchQueryBuilder
