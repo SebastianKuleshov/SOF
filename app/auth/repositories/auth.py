@@ -20,8 +20,7 @@ class AuthRepository:
             access_token: str
     ) -> bool:
         key = str(user_id)
-        await self.redis.rpush(key, refresh_token)
-        await self.redis.rpush(key, access_token)
+        await self.redis.rpush(key, refresh_token, access_token)
         return True
 
     async def check_token(
