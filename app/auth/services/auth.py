@@ -61,6 +61,7 @@ class AuthService:
             cls,
             request: Request,
             user_repository: Annotated[UserRepository, Depends()],
+            auth_repository: Annotated[AuthRepository, Depends()],
             is_refresh: bool = False,
             token: str = Depends(oauth2_scheme)
     ) -> UserOutSchema | None:
@@ -81,6 +82,14 @@ class AuthService:
             if is_refresh and payload.get('token_type') != 'refresh':
                 raise credentials_exception
             user_id = payload.get('sub')
+            token_exists = await auth_repository.check_token(user_id, token)
+            if not token_exists:
+                await auth_repository.delete_user_tokens(user_id)
+                raise HTTPException(
+                    status_code=400,
+                    detail='Token is invalid'
+                )
+
             if user_id is None:
                 raise credentials_exception
         except jwt.PyJWTError:
@@ -125,7 +134,8 @@ class AuthService:
 
         await self.auth_repository.create(
             user_id,
-            refresh_token
+            refresh_token,
+            access_token
         )
 
         return TokenBaseSchema(
@@ -170,21 +180,10 @@ class AuthService:
         user = await self.get_user_from_jwt(
             request,
             self.user_repository,
+            self.auth_repository,
             True,
             refresh_token
         )
-
-        token = await self.auth_repository.get(
-            user.id,
-            refresh_token
-        )
-
-        if not token:
-            await self.auth_repository.delete_user_tokens(user.id)
-            raise HTTPException(
-                status_code=400,
-                detail='Token is invalid'
-            )
 
         await self.auth_repository.delete_user_token(
             user.id,
@@ -192,3 +191,13 @@ class AuthService:
         )
 
         return await self.__generate_token(user.id, user.nick_name)
+
+    async def logout(
+            self,
+            request: Request,
+            user_id: int
+    ) -> bool:
+        access_token = request.headers['Authorization'].split(' ')[1]
+        return await self.auth_repository.delete_user_token(
+            user_id, access_token
+        )

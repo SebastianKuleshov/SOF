@@ -35,15 +35,17 @@ services:
       - SOFCopy
 
   redis:
-    image: redis:alpine
+    image: redis:7.4.0-alpine
     restart: always
     ports:
       - ${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}
     command:
       - redis-server
+      - --save 60 1
+      - --loglevel warning
       - --requirepass ${REDIS_PASSWORD}
     volumes:
-      - "./redis:/data"
+      - './redis_data:/data/'
     container_name: redis
     networks:
       - SOFCopy
