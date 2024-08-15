@@ -188,13 +188,3 @@ class AuthService:
         await self.auth_repository.delete_user_tokens(user.id)
 
         return await self.__generate_token(user.id, user.nick_name)
-
-    async def logout(
-            self,
-            request: Request,
-            user_id: int
-    ) -> bool:
-        access_token = request.headers['Authorization'].split(' ')[1]
-        return await self.auth_repository.delete_user_token(
-            user_id, access_token
-        )
