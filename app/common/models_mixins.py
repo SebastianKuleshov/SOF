@@ -16,6 +16,13 @@ class CreatedAtUpdatedAtMixin:
     )
 
 
+class CreatedAtMixin:
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+
 class SoftDeleteMixin:
     deleted_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
