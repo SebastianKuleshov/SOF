@@ -218,7 +218,7 @@ class AuthService:
         )
 
         verification_url = (
-            f'{request.base_url}auth/reset-password?token'
+            f'{request.base_url}auth/reset-password?verification_token'
             f'={verification_token}'
         )
 
