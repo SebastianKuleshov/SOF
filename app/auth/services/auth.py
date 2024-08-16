@@ -244,7 +244,9 @@ class AuthService:
                 settings.SECRET_KEY,
                 algorithms=[settings.ALGORITHM]
             )
-            user = await self.user_repository.get_by_email(payload.get('sub'))
+            user = await self.user_repository.get_one(
+                {'email': payload.get('sub')}
+            )
 
             if not user:
                 raise HTTPException(
