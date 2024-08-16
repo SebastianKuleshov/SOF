@@ -6,9 +6,12 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
-from app.auth.repositories.auth import AuthRepository
-from app.auth.schemas import TokenBaseSchema
-from app.dependencies import get_settings, oauth2_scheme, verify_password
+from app.auth.repositories import AuthRepository
+from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
+    EmailCreatePayloadSchema
+from app.common.schemas_mixins import PasswordCreationMixin
+from app.dependencies import get_settings, oauth2_scheme, verify_password, \
+    get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema
@@ -132,7 +135,7 @@ class AuthService:
             refresh_token_expire_delta
         )
 
-        await self.auth_repository.create(
+        await self.auth_repository.create_tokens(
             user_id,
             refresh_token,
             access_token
@@ -189,12 +192,78 @@ class AuthService:
 
         return await self.__generate_token(user.id, user.nick_name)
 
-    async def logout(
+    async def send_email(
             self,
             request: Request,
-            user_id: int
+            email_schema: EmailCreateSchema
     ) -> bool:
-        access_token = request.headers['Authorization'].split(' ')[1]
-        return await self.auth_repository.delete_user_token(
-            user_id, access_token
+        user = await self.user_repository.get_by_email(email_schema.recipient)
+        if not user:
+            raise HTTPException(
+                status_code=400,
+                detail='User not found'
+            )
+        settings = get_settings()
+
+        to_encode = {'sub': email_schema.recipient}
+
+        verification_token_expire_delta = timedelta(
+            minutes=settings.VERIFICATION_TOKEN_EXPIRE_MINUTES
         )
+        verification_to_encode = to_encode.copy()
+
+        verification_token = await self.create_token(
+            verification_to_encode,
+            verification_token_expire_delta
+        )
+
+        verification_url = (
+            f'{request.base_url}auth/reset-password?token'
+            f'={verification_token}'
+        )
+
+        email_schema = EmailCreatePayloadSchema(
+            **email_schema.model_dump(),
+            subject='YOUR URL',
+            body=f'Your verification url is {verification_url}',
+        )
+
+        return await self.auth_repository.send_email(
+            email_schema
+        )
+
+    async def reset_password(
+            self,
+            verification_token: str,
+            new_password_data: PasswordCreationMixin
+    ) -> bool:
+        settings = get_settings()
+        try:
+            payload = jwt.decode(
+                verification_token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM]
+            )
+            user = await self.user_repository.get_by_email(payload.get('sub'))
+
+            if not user:
+                raise HTTPException(
+                    status_code=400,
+                    detail='User not found'
+                )
+            new_password_data.password = await get_password_hash(
+                new_password_data.password
+            )
+
+            await self.user_service.user_repository.update(
+                user.id,
+                new_password_data
+            )
+
+            return True
+        except jwt.PyJWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Could not validate credentials',
+                headers={'WWW-Authenticate': 'Bearer'},
+            )

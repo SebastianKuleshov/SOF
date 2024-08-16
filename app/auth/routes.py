@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth import schemas
 from app.auth.services import AuthService
+from app.common.schemas_mixins import PasswordCreationMixin
 
 router = APIRouter(
     prefix='/auth',
@@ -44,3 +45,28 @@ async def logout(
         auth_service: Annotated[AuthService, Depends()]
 ) -> bool:
     return await auth_service.auth_repository.delete_user_tokens(user_id)
+
+
+@router.post(
+    '/forgot-password',
+)
+async def forgot_password(
+        auth_service: Annotated[AuthService, Depends()],
+        request: Request,
+        email_schema: schemas.EmailCreateSchema
+) -> bool:
+    return await auth_service.send_email(request, email_schema)
+
+
+@router.post(
+    '/reset-password',
+)
+async def reset_password(
+        auth_service: Annotated[AuthService, Depends()],
+        verification_token: str,
+        new_password_data: PasswordCreationMixin
+) -> bool:
+    return await auth_service.reset_password(
+        verification_token,
+        new_password_data
+    )
