@@ -7,6 +7,7 @@ services:
   web:
     depends_on:
       - db
+      - redis
     build: .
     working_dir: /app
     command: uvicorn app.main:app --reload --host ${UVICORN_HOST} --port ${WEB_PORT_CONTAINER}
@@ -30,5 +31,21 @@ services:
     volumes:
       - "./databases:/var/lib/postgresql/data/"
     container_name: db
+    networks:
+      - SOFCopy
+
+  redis:
+    image: redis:7.4.0-alpine
+    restart: always
+    ports:
+      - ${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}
+    command:
+      - redis-server
+      - --save 60 1
+      - --loglevel warning
+      - --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - './redis_data:/data/'
+    container_name: redis
     networks:
       - SOFCopy

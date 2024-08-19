@@ -164,4 +164,6 @@ vscode/
 .idea/
 *.db
 databases/
-
+redis/
+!/app/core/adapters/
+redis_data/

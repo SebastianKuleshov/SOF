@@ -6,11 +6,12 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
+from app.auth.repositories.auth import AuthRepository
 from app.auth.schemas import TokenBaseSchema
-from app.users.models import UserModel
-from app.users.schemas import UserOutSchema
-from app.users.repositories import UserRepository
 from app.dependencies import get_settings, oauth2_scheme, verify_password
+from app.users.models import UserModel
+from app.users.repositories import UserRepository
+from app.users.schemas import UserOutSchema
 from app.users.services import UserService
 
 
@@ -18,9 +19,11 @@ class AuthService:
     def __init__(
             self,
             user_repository: Annotated[UserRepository, Depends()],
+            auth_repository: Annotated[AuthRepository, Depends()],
             user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.user_repository = user_repository
+        self.auth_repository = auth_repository
         self.user_service = user_service
 
     @staticmethod
@@ -58,6 +61,7 @@ class AuthService:
             cls,
             request: Request,
             user_repository: Annotated[UserRepository, Depends()],
+            auth_repository: Annotated[AuthRepository, Depends()],
             is_refresh: bool = False,
             token: str = Depends(oauth2_scheme)
     ) -> UserOutSchema | None:
@@ -78,6 +82,14 @@ class AuthService:
             if is_refresh and payload.get('token_type') != 'refresh':
                 raise credentials_exception
             user_id = payload.get('sub')
+            token_exists = await auth_repository.check_token(user_id, token)
+            if not token_exists:
+                await auth_repository.delete_user_tokens(user_id)
+                raise HTTPException(
+                    status_code=400,
+                    detail='Token is invalid'
+                )
+
             if user_id is None:
                 raise credentials_exception
         except jwt.PyJWTError:
@@ -118,6 +130,12 @@ class AuthService:
         refresh_token = await self.create_token(
             refresh_to_encode,
             refresh_token_expire_delta
+        )
+
+        await self.auth_repository.create(
+            user_id,
+            refresh_token,
+            access_token
         )
 
         return TokenBaseSchema(
@@ -162,8 +180,11 @@ class AuthService:
         user = await self.get_user_from_jwt(
             request,
             self.user_repository,
+            self.auth_repository,
             True,
             refresh_token
         )
+
+        await self.auth_repository.delete_user_tokens(user.id)
 
         return await self.__generate_token(user.id, user.nick_name)

@@ -33,3 +33,14 @@ async def refresh(
         refresh_token: str
 ):
     return await auth_service.refresh(request, refresh_token)
+
+
+@router.post(
+    '/logout',
+    dependencies=[Depends(AuthService.get_user_from_jwt)],
+)
+async def logout(
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
+        auth_service: Annotated[AuthService, Depends()]
+) -> bool:
+    return await auth_service.auth_repository.delete_user_tokens(user_id)
