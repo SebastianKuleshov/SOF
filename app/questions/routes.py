@@ -71,7 +71,7 @@ async def get_question(
 @private_router.post(
     '/',
     response_model=question_schemas.QuestionWithTagsOutSchema,
-    dependencies=[Depends(AuthService.RoleChecker(['admin']))]
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def create_question(
         question_service: Annotated[QuestionService, Depends()],
@@ -83,7 +83,8 @@ async def create_question(
 
 @private_router.post(
     '/votes/upvote',
-    response_model=vote_schemas.VoteOutSchema
+    response_model=vote_schemas.VoteOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def upvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -100,7 +101,8 @@ async def upvote_question(
 
 @private_router.post(
     '/votes/downvote',
-    response_model=vote_schemas.VoteOutSchema
+    response_model=vote_schemas.VoteOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def downvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -164,7 +166,8 @@ async def get_question_with_user_vote(
 
 @private_router.put(
     '/{question_id}',
-    response_model=question_schemas.QuestionWithJoinsOutSchema
+    response_model=question_schemas.QuestionWithJoinsOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
@@ -180,7 +183,8 @@ async def update_question(
 
 
 @private_router.delete(
-    '/{question_id}'
+    '/{question_id}',
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def delete_question(
         question_service: Annotated[QuestionService, Depends()],

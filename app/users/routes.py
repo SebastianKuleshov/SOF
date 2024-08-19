@@ -99,3 +99,33 @@ async def delete_current_user(
         user_id,
         requesting_user_id
     )
+
+
+@private_router.post(
+    '/ban/{user_id}',
+    dependencies=[Depends(AuthService.PermissionChecker(['admin']))]
+)
+async def ban_user(
+        user_service: Annotated[UserService, Depends()],
+        requesting_user_id: Annotated[
+            AuthService.get_user_id_from_request, Depends()
+        ],
+        target_user_id: int
+) -> bool:
+    return await user_service.ban_user(
+        requesting_user_id,
+        target_user_id
+    )
+
+
+@private_router.post(
+    '/unban/{user_id}',
+    dependencies=[Depends(AuthService.PermissionChecker(['admin']))]
+)
+async def unban_user(
+        user_service: Annotated[UserService, Depends()],
+        target_user_id: int
+) -> bool:
+    return await user_service.unban_user(
+        target_user_id
+    )

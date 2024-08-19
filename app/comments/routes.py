@@ -8,7 +8,8 @@ from app.comments.services import CommentService
 
 router = APIRouter(
     prefix='/comments',
-    tags=['comments']
+    tags=['comments'],
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 
 

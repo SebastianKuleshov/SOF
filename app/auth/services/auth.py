@@ -190,19 +190,31 @@ class AuthService:
 
         return await self.__generate_token(user.id, user.nick_name)
 
-    class RoleChecker:
+    class PermissionChecker:
         def __init__(
                 self,
-                allowed_permissions: list[str]
+                allowed_permissions: list[str] | None = None
         ) -> None:
             self.allowed_permissions = allowed_permissions
 
-        def __call__(self, request: Request) -> None:
+        def __call__(
+                self,
+                request: Request
+        ) -> bool:
             user = request.state.user
             user_permissions = [role.name for role in user.roles]
+
+            if 'banned' in user_permissions:
+                raise HTTPException(
+                    status_code=403,
+                    detail='User is banned'
+                )
+
             for permission in self.allowed_permissions:
                 if permission not in user_permissions:
                     raise HTTPException(
                         status_code=403,
                         detail='Permission denied'
                     )
+
+            return True

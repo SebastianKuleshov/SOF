@@ -15,7 +15,11 @@ router = APIRouter(
 )
 
 
-@router.post('/', response_model=answer_schemas.AnswerOutSchema)
+@router.post(
+    '/',
+    response_model=answer_schemas.AnswerOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
+)
 async def create_answer(
         answer_service: Annotated[AnswerService, Depends()],
         user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
@@ -26,7 +30,8 @@ async def create_answer(
 
 @router.post(
     '/votes/upvote',
-    response_model=vote_schemas.VoteOutSchema
+    response_model=vote_schemas.VoteOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def upvote_answer(
         vote_service: Annotated[VoteService, Depends()],
@@ -43,7 +48,8 @@ async def upvote_answer(
 
 @router.post(
     '/votes/downvote',
-    response_model=vote_schemas.VoteOutSchema
+    response_model=vote_schemas.VoteOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def downvote_answer(
         vote_service: Annotated[VoteService, Depends()],
@@ -92,7 +98,8 @@ async def revoke_downvote_answer(
 
 @router.put(
     '/{answer_id}',
-    response_model=answer_schemas.AnswerWithJoinsOutSchema
+    response_model=answer_schemas.AnswerWithJoinsOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def update_answer(
         answer_service: Annotated[AnswerService, Depends()],
@@ -108,7 +115,8 @@ async def update_answer(
 
 
 @router.delete(
-    '/{answer_id}'
+    '/{answer_id}',
+    dependencies=[Depends(AuthService.PermissionChecker())]
 )
 async def delete_answer(
         answer_service: Annotated[AnswerService, Depends()],

@@ -21,7 +21,9 @@ def upgrade() -> None:
     roles = [
         {'name': 'admin'},
         {'name': 'user'},
-        {'name': 'moderator'}
+        {'name': 'moderator'},
+        {'name': 'superuser'},
+        {'name': 'banned'}
     ]
     op.bulk_insert(
         sa.table(
@@ -34,7 +36,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     roles_to_remove = [
-        'admin', 'user', 'moderator'
+        'admin', 'user', 'moderator', 'superuser', 'banned'
     ]
 
     roles_table = sa.table(
