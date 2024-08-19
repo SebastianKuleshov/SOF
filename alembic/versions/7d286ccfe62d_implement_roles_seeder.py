@@ -19,9 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     roles = [
-        {'name': 'Admin'},
-        {'name': 'User'},
-        {'name': 'Moderator'}
+        {'name': 'admin'},
+        {'name': 'user'},
+        {'name': 'moderator'}
     ]
     op.bulk_insert(
         sa.table(
@@ -34,7 +34,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     roles_to_remove = [
-        'Admin', 'User', 'Moderator'
+        'admin', 'user', 'moderator'
     ]
 
     roles_table = sa.table(

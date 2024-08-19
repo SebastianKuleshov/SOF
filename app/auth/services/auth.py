@@ -95,12 +95,13 @@ class AuthService:
         except jwt.PyJWTError:
             raise credentials_exception
 
-        user = await user_repository.get_by_id(user_id)
+        user = await user_repository.get_by_id_with_roles(user_id)
         if user is None:
             raise credentials_exception
 
         request.state.user_id = user_id
-        return user
+        request.state.user = user
+        return UserOutSchema.model_validate(user)
 
     async def __generate_token(
             self,
@@ -188,3 +189,20 @@ class AuthService:
         await self.auth_repository.delete_user_tokens(user.id)
 
         return await self.__generate_token(user.id, user.nick_name)
+
+    class RoleChecker:
+        def __init__(
+                self,
+                allowed_permissions: list[str]
+        ) -> None:
+            self.allowed_permissions = allowed_permissions
+
+        def __call__(self, request: Request) -> None:
+            user = request.state.user
+            user_permissions = [role.name for role in user.roles]
+            for permission in self.allowed_permissions:
+                if permission not in user_permissions:
+                    raise HTTPException(
+                        status_code=403,
+                        detail='Permission denied'
+                    )

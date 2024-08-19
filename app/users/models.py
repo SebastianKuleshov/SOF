@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
 from app.core.adapters.postgres.postgres_adapter import Base
+from app.roles.models import RoleModel
 
 role_user = Table(
     'role_user',
@@ -59,7 +60,7 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         cascade='all, delete'
     )
 
-    roles: Mapped[list['RoleModel']] = relationship(
+    roles: Mapped[list[RoleModel]] = relationship(
         'RoleModel',
         secondary='role_user',
         back_populates='users',

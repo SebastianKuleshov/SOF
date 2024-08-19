@@ -15,7 +15,7 @@ class SearchService:
             question_repository: Annotated[QuestionRepository, Depends()],
             answer_repository: Annotated[AnswerRepository, Depends()],
             vote_repository: Annotated[VoteRepository, Depends()]
-    ):
+    ) -> None:
         self.question_repository = question_repository
         self.answer_repository = answer_repository
         self.vote_repository = vote_repository

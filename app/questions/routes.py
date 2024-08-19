@@ -70,7 +70,8 @@ async def get_question(
 
 @private_router.post(
     '/',
-    response_model=question_schemas.QuestionWithTagsOutSchema
+    response_model=question_schemas.QuestionWithTagsOutSchema,
+    dependencies=[Depends(AuthService.RoleChecker(['admin']))]
 )
 async def create_question(
         question_service: Annotated[QuestionService, Depends()],
