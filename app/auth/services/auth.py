@@ -6,16 +6,17 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
+from app.common.schemas_mixins import PasswordCreationMixin
+from app.common.services import EmailService
 from app.auth.repositories import AuthRepository
 from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
     EmailCreatePayloadSchema
-from app.common.schemas_mixins import PasswordCreationMixin
-from app.dependencies import get_settings, oauth2_scheme, verify_password, \
-    get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema
 from app.users.services import UserService
+from app.dependencies import get_settings, oauth2_scheme, verify_password, \
+    get_password_hash
 
 
 class AuthService:
@@ -23,11 +24,13 @@ class AuthService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             auth_repository: Annotated[AuthRepository, Depends()],
-            user_service: Annotated[UserService, Depends()]
+            user_service: Annotated[UserService, Depends()],
+            email_service: Annotated[EmailService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.auth_repository = auth_repository
         self.user_service = user_service
+        self.email_service = email_service
 
     @staticmethod
     async def create_token(
@@ -192,12 +195,13 @@ class AuthService:
 
         return await self.__generate_token(user.id, user.nick_name)
 
-    async def send_email(
+    async def forgot_password(
             self,
-            request: Request,
             email_schema: EmailCreateSchema
     ) -> bool:
-        user = await self.user_repository.get_by_email(email_schema.recipient)
+        user = await self.user_repository.get_one(
+            {'email': email_schema.recipient}
+        )
         if not user:
             raise HTTPException(
                 status_code=400,
@@ -218,7 +222,7 @@ class AuthService:
         )
 
         verification_url = (
-            f'{request.base_url}auth/reset-password?verification_token'
+            f'{settings.BASE_URL}/auth/reset-password?verification_token'
             f'={verification_token}'
         )
 
@@ -228,7 +232,7 @@ class AuthService:
             body=f'Your verification url is {verification_url}',
         )
 
-        return await self.auth_repository.send_email(
+        return await self.email_service.send_email(
             email_schema
         )
 

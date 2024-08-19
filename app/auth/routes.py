@@ -52,10 +52,9 @@ async def logout(
 )
 async def forgot_password(
         auth_service: Annotated[AuthService, Depends()],
-        request: Request,
         email_schema: schemas.EmailCreateSchema
 ) -> bool:
-    return await auth_service.send_email(request, email_schema)
+    return await auth_service.forgot_password(email_schema)
 
 
 @router.post(

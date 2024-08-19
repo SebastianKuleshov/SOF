@@ -4,12 +4,13 @@ import aiosmtplib
 from aiosmtplib.errors import SMTPException
 from fastapi import HTTPException
 
+from app.auth.schemas import EmailCreatePayloadSchema
 from app.dependencies import get_settings
 
 settings = get_settings()
 
 
-class EmailAdapter:
+class EmailService:
     def __init__(self):
         self.host = settings.EMAIL_SMTP_HOST
         self.port = settings.EMAIL_SMTP_PORT
@@ -18,16 +19,18 @@ class EmailAdapter:
         self.use_tls = settings.EMAIL_SMTP_TLS
 
     async def send_email(
-            self, subject: str, recipient: str, body: str, sender: str = None
+            self,
+            email_schema: EmailCreatePayloadSchema,
+            sender: str = None
     ) -> bool:
         if sender is None:
             sender = settings.EMAIL_SMTP_USERNAME
 
         message = EmailMessage()
         message["From"] = sender
-        message["To"] = recipient
-        message["Subject"] = subject
-        message.set_content(body)
+        message["To"] = email_schema.recipient
+        message["Subject"] = email_schema.subject
+        message.set_content(email_schema.body)
 
         try:
             await aiosmtplib.send(
@@ -45,10 +48,3 @@ class EmailAdapter:
             )
 
         return True
-
-
-email_adapter = EmailAdapter()
-
-
-async def get_email_adapter() -> EmailAdapter:
-    yield email_adapter
