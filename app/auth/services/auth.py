@@ -6,17 +6,17 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
-from app.common.schemas_mixins import PasswordCreationMixin
-from app.common.services import EmailService
 from app.auth.repositories import AuthRepository
 from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
     EmailCreatePayloadSchema
+from app.common.schemas_mixins import PasswordCreationMixin
+from app.common.services import EmailService
+from app.dependencies import get_settings, oauth2_scheme, verify_password, \
+    get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema
 from app.users.services import UserService
-from app.dependencies import get_settings, oauth2_scheme, verify_password, \
-    get_password_hash
 
 
 class AuthService:
