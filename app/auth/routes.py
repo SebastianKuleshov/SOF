@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth import schemas
@@ -62,10 +62,10 @@ async def forgot_password(
 )
 async def reset_password(
         auth_service: Annotated[AuthService, Depends()],
-        verification_token: str,
-        new_password_data: PasswordCreationMixin
+        new_password_data: PasswordCreationMixin,
+        auth: Annotated[str, Header()]
 ) -> bool:
     return await auth_service.reset_password(
-        verification_token,
+        auth,
         new_password_data
     )

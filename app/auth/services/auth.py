@@ -238,9 +238,18 @@ class AuthService:
 
     async def reset_password(
             self,
-            verification_token: str,
+            authorization: str,
             new_password_data: PasswordCreationMixin
     ) -> bool:
+
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid authorization header format"
+            )
+
+        verification_token = authorization.split("Bearer ")[1]
+
         settings = get_settings()
         try:
             payload = jwt.decode(
