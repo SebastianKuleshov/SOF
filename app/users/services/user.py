@@ -138,3 +138,35 @@ class UserService:
         )
 
         return True
+
+    async def get_user_permissions(
+            self,
+            user_id: int
+    ) -> set[str]:
+        user = await self.user_repository.get_by_id_with_joins(user_id)
+        user_permissions = {
+            permission.name for role in user.roles
+            for permission in role.permissions
+        }
+
+        return user_permissions
+
+    async def check_and_update_user_role(
+            self,
+            user_id: int,
+            increase: bool
+    ) -> bool:
+        roles = await self.role_repository.get_roles_by_name(
+            ['advanced_user']
+        )
+        if increase:
+            await self.user_repository.attach_roles_to_user(
+                user_id,
+                roles
+            )
+        else:
+            await self.user_repository.detach_roles_from_user(
+                user_id,
+                roles
+            )
+        return True

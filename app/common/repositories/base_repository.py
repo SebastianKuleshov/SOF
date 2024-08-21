@@ -68,6 +68,13 @@ class BaseRepository(ABC):
             entity_id: int
     ) -> MODEL | None:
         stmt = self._get_default_stmt()
+        print()
+        print()
+        print()
+        print(stmt)
+        print()
+        print()
+        print()
         return await self.session.scalar(stmt.filter_by(id=entity_id))
 
     async def get_multi(

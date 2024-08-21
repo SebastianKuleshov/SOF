@@ -22,6 +22,7 @@ def upgrade() -> None:
         {'name': 'superuser'},
         {'name': 'admin'},
         {'name': 'user'},
+        {'name': 'advanced_user'},
         {'name': 'moderator'},
         {'name': 'banned'}
     ]
@@ -36,7 +37,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     roles_to_remove = [
-        'admin', 'user', 'moderator', 'superuser', 'banned'
+        'admin', 'user', 'moderator', 'superuser', 'banned', 'advanced_user'
     ]
 
     roles_table = sa.table(

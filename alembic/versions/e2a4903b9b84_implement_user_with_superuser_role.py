@@ -36,6 +36,7 @@ def upgrade() -> None:
 
     users_table = sa.table(
         'users',
+        sa.column('id', sa.Integer),
         sa.column('email', sa.String),
         sa.column('password', sa.String),
         sa.column('nick_name', sa.String),
@@ -47,6 +48,12 @@ def upgrade() -> None:
         'role_user',
         sa.column('role_id', sa.Integer),
         sa.column('user_id', sa.Integer)
+    )
+
+    roles_table = sa.table(
+        'roles',
+        sa.column('id', sa.Integer),
+        sa.column('name', sa.String)
     )
 
     connection = op.get_bind()
@@ -61,11 +68,23 @@ def upgrade() -> None:
         )
     )
 
+    query = sa.select(users_table.c.id).where(
+        users_table.c.email == superuser_email
+    )
+    result = connection.execute(query)
+    superuser_id = result.scalar()
+
+    query = sa.select(roles_table.c.id).where(
+        roles_table.c.name == 'superuser'
+    )
+    result = connection.execute(query)
+    superuser_role_id = result.scalar()
+
     op.bulk_insert(
         role_user_table,
         [{
-            'role_id': 1,
-            'user_id': 1
+            'role_id': superuser_role_id,
+            'user_id': superuser_id
         }]
     )
 

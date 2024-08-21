@@ -9,13 +9,14 @@ from app.comments.services import CommentService
 router = APIRouter(
     prefix='/comments',
     tags=['comments'],
-    dependencies=[Depends(AuthService.PermissionChecker())]
+    dependencies=[Depends(AuthService.get_user_from_jwt)]
 )
 
 
 @router.post(
     '/',
-    response_model=comments_schemas.CommentOutSchema
+    response_model=comments_schemas.CommentOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker(['create_own_comment']))]
 )
 async def create_comment(
         comment_service: Annotated[CommentService, Depends()],
@@ -30,7 +31,8 @@ async def create_comment(
 
 @router.put(
     '/{comment_id}',
-    response_model=comments_schemas.CommentOutSchema
+    response_model=comments_schemas.CommentOutSchema,
+    dependencies=[Depends(AuthService.PermissionChecker(['update_own_comment']))]
 )
 async def update_comment(
         comment_service: Annotated[CommentService, Depends()],
@@ -46,7 +48,8 @@ async def update_comment(
 
 
 @router.delete(
-    '/{comment_id}'
+    '/{comment_id}',
+    dependencies=[Depends(AuthService.PermissionChecker(['delete_own_comment']))]
 )
 async def delete_comment(
         comment_service: Annotated[CommentService, Depends()],

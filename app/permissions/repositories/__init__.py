@@ -1,0 +1,1 @@
+from app.permissions.repositories.permission import PermissionRepository

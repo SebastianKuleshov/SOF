@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException
 from app.answers.repositories import AnswerRepository
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
+from app.users.services import UserService
 from app.votes.repository import VoteRepository
 from app.votes.schemas import VoteCreateSchema, VoteCreatePayloadSchema, \
     VoteOutSchema
@@ -16,12 +17,14 @@ class VoteService:
             vote_repository: Annotated[VoteRepository, Depends()],
             question_repository: Annotated[QuestionRepository, Depends()],
             answer_repository: Annotated[AnswerRepository, Depends()],
-            user_repository: Annotated[UserRepository, Depends()]
+            user_repository: Annotated[UserRepository, Depends()],
+            user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.vote_repository = vote_repository
         self.question_repository = question_repository
         self.answer_repository = answer_repository
         self.user_repository = user_repository
+        self.user_service = user_service
 
     async def __get_entity_repository(
             self,
@@ -77,10 +80,21 @@ class VoteService:
             )
         )
 
-        await self.user_repository.update_reputation(
+        user_reputation = await self.user_repository.update_reputation(
             target_user_id,
             is_upvote
         )
+
+        if user_reputation == 100 and is_upvote:
+            await self.user_service.check_and_update_user_role(
+                target_user_id,
+                True
+            )
+        elif user_reputation == 99 and not is_upvote:
+            await self.user_service.check_and_update_user_role(
+                target_user_id,
+                False
+            )
 
         return VoteOutSchema.model_validate(vote_model)
 
@@ -108,9 +122,20 @@ class VoteService:
         entity = await repository.get_entity_if_exists(entity_id)
         target_user_id = entity.user_id
 
-        await self.user_repository.update_reputation(
+        user_reputation = await self.user_repository.update_reputation(
             target_user_id,
             not is_upvote
         )
+
+        if user_reputation == 99 and is_upvote:
+            await self.user_service.check_and_update_user_role(
+                target_user_id,
+                False
+            )
+        elif user_reputation == 100 and not is_upvote:
+            await self.user_service.check_and_update_user_role(
+                target_user_id,
+                True
+            )
 
         return await self.vote_repository.delete(vote.id)

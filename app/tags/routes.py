@@ -10,6 +10,7 @@ public_router = APIRouter(
     prefix='/tags',
     tags=['tags']
 )
+
 private_router = APIRouter(
     prefix='/tags',
     tags=['tags'],
@@ -40,7 +41,7 @@ async def get_tag(
 @private_router.post(
     '/',
     response_model=tag_schemas.TagOutSchema,
-    dependencies=[Depends(AuthService.PermissionChecker(['admin']))]
+    dependencies=[Depends(AuthService.PermissionChecker(['create_tag']))]
 )
 async def create_tag(
         tag_service: Annotated[TagService, Depends()],
@@ -51,7 +52,7 @@ async def create_tag(
 
 @private_router.delete(
     '/{tag_id}',
-    dependencies=[Depends(AuthService.PermissionChecker(['admin']))]
+    dependencies=[Depends(AuthService.PermissionChecker(['delete_tag']))]
 )
 async def delete_tag(
         tag_service: Annotated[TagService, Depends()],

@@ -18,18 +18,36 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    permissions = [
-        {'name': 'read_any_question'},
-        {'name': 'create_own_question'},
-        {'name': 'update_own_question'},
-        {'name': 'delete_own_question'},
-        {'name': 'update_any_question'},
-        {'name': 'delete_any_question'},
-        {'name': 'create_permission'},
-        {'name': 'give_permission'},
-        {'name': 'create_role'},
-        {'name': 'give_role'}
-    ]
+    entities = ['question', 'answer', 'comment']
+    permissions = []
+
+    for entity in entities:
+        permissions.extend(
+            [
+                {'name': f'read_any_{entity}'},
+                {'name': f'create_own_{entity}'},
+                {'name': f'update_own_{entity}'},
+                {'name': f'delete_own_{entity}'},
+                {'name': f'update_any_{entity}'},
+                {'name': f'delete_any_{entity}'}
+            ]
+        )
+
+    # Add additional permissions
+    permissions.extend(
+        [
+            {'name': 'upvote'},
+            {'name': 'downvote'},
+            {'name': 'create_permission'},
+            {'name': 'attach_permission'},
+            {'name': 'create_role'},
+            {'name': 'attach_role'},
+            {'name': 'ban_user'},
+            {'name': 'unban_user'},
+            {'name': 'create_tag'},
+            {'name': 'delete_tag'}
+        ]
+    )
 
     op.bulk_insert(
         sa.table(
@@ -57,31 +75,50 @@ def upgrade() -> None:
         for permission in permissions
     }
 
+    user_permissions = [
+        'read_any_question',
+        'create_own_question',
+        'update_own_question',
+        'delete_own_question',
+        'read_any_answer',
+        'create_own_answer',
+        'update_own_answer',
+        'delete_own_answer',
+        'read_any_comment',
+        'create_own_comment',
+        'update_own_comment',
+        'delete_own_comment',
+        'upvote',
+        'downvote',
+    ]
+
+    advanced_user_permissions = user_permissions + [
+        'create_tag'
+    ]
+
+    moderator_permissions = advanced_user_permissions + [
+        'update_any_question',
+        'update_any_answer',
+        'update_any_comment',
+        'delete_any_question',
+        'delete_any_answer',
+        'delete_any_comment',
+        'delete_tag'
+    ]
+
+    admin_permissions = moderator_permissions + [
+        'ban_user',
+        'unban_user'
+    ]
+
     role_permissions = []
 
     role_permissions_map = {
         'superuser': list(permission_dict.keys()),
-        'user': [
-            'read_any_question',
-            'create_own_question',
-            'update_own_question',
-            'delete_own_question'
-        ],
-        'moderator': [
-            'read_any_question',
-            'create_own_question',
-            'update_own_question',
-            'delete_own_question',
-            'update_any_question',
-        ],
-        'admin': [
-            'read_any_question',
-            'create_own_question',
-            'update_own_question',
-            'delete_own_question',
-            'update_any_question',
-            'delete_any_question'
-        ]
+        'user': user_permissions,
+        'advanced_user': advanced_user_permissions,
+        'moderator': moderator_permissions,
+        'admin': admin_permissions
     }
 
     # Populate role_permissions list
@@ -115,16 +152,30 @@ def downgrade() -> None:
         'delete_own_question',
         'update_any_question',
         'delete_any_question',
+        'read_any_answer',
+        'create_own_answer',
+        'update_own_answer',
+        'delete_own_answer',
+        'update_any_answer',
+        'delete_any_answer',
+        'read_any_comment',
+        'create_own_comment',
+        'update_own_comment',
+        'delete_own_comment',
+        'update_any_comment',
+        'delete_any_comment',
         'create_permission',
-        'give_permission',
+        'attach_permission',
         'create_role',
-        'give_role'
+        'attach_role',
+        'ban_user',
+        'unban_user'
     ]
 
     permission_ids = connection.execute(
         sa.text(
             "SELECT id FROM permissions WHERE name = ANY(:permissions)"
-            ).params(permissions=permissions)
+        ).params(permissions=permissions)
     ).fetchall()
 
     permission_ids = [perm_id[0] for perm_id in permission_ids]
@@ -140,5 +191,5 @@ def downgrade() -> None:
     op.execute(
         sa.text(
             "DELETE FROM permissions WHERE id = ANY(:permission_ids)"
-            ).params(permission_ids=permission_ids)
+        ).params(permission_ids=permission_ids)
     )
