@@ -31,8 +31,6 @@ class PermissionRepository(BaseRepository):
             )
         return True
 
-    # TODO CHECK ATTACH TAGS TO QUESTIONS
-
     async def detach_permission_from_role(
             self,
             permission: PermissionModel,
