@@ -19,10 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     roles = [
+        {'name': 'superuser'},
         {'name': 'admin'},
         {'name': 'user'},
         {'name': 'moderator'},
-        {'name': 'superuser'},
         {'name': 'banned'}
     ]
     op.bulk_insert(
