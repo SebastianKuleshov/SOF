@@ -67,8 +67,13 @@ class UserUpdateSchema(UserBaseSchema):
     biography: str | None = None
 
 
+class UserUpdatePayloadSchema(UserUpdateSchema):
+    avatar_key: str | None = None
+
+
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
     nick_name: str
     biography: str | None = None
     reputation: int
+    avatar_url: str | None = None

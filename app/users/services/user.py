@@ -1,23 +1,27 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 
+from app.common.services.aws_s3 import S3Service
 from app.dependencies import get_password_hash
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
-from app.users.schemas import UserCreateSchema, UserOutSchema, UserUpdateSchema
+from app.users.schemas import UserCreateSchema, UserOutSchema, \
+    UserUpdateSchema, UserUpdatePayloadSchema
 
 
 class UserService:
     def __init__(
             self,
             user_repository: Annotated[UserRepository, Depends()],
-            role_repository: Annotated[RoleRepository, Depends()]
+            role_repository: Annotated[RoleRepository, Depends()],
+            s3_service: Annotated[S3Service, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
+        self.s3_service = s3_service
 
     async def create_user(
             self,
@@ -41,11 +45,45 @@ class UserService:
 
         return UserOutSchema.model_validate(user_model)
 
+    async def get_user(
+            self,
+            user_id: int
+    ) -> UserOutSchema:
+        user_model = await self.user_repository.get_by_id(user_id)
+        avatar_url = await self.s3_service.generate_presigned_url(
+            user_model.avatar_key
+        ) if user_model.avatar_key else None
+
+        return UserOutSchema.model_validate(
+            {
+                **user_model.__dict__,
+                'avatar_url': avatar_url
+            }
+        )
+
+    async def get_users(
+            self,
+            skip: int,
+            limit: int
+    ) -> list[UserOutSchema]:
+        users = await self.user_repository.get_multi(skip, limit)
+        return [
+            UserOutSchema.model_validate(
+                {
+                    **user.__dict__,
+                    'avatar_url': await self.s3_service.generate_presigned_url(
+                        user.avatar_key
+                    ) if user.avatar_key else None
+                }
+            ) for user in users
+        ]
+
     async def update_user(
             self,
             target_user_id: int,
             requesting_user_id: int,
-            user_schema: UserUpdateSchema
+            user_schema: UserUpdateSchema,
+            file: UploadFile
     ) -> UserOutSchema:
         user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
@@ -54,21 +92,44 @@ class UserService:
                 detail='You are not allowed to update this user'
             )
 
+        if file:
+            avatar_key = await self.s3_service.upload_file(
+                user,
+                file
+            )
+        else:
+            avatar_key = None
+
+        user_schema = UserUpdatePayloadSchema(
+            **user_schema.model_dump(exclude_unset=True),
+            avatar_key=avatar_key
+        )
+
         try:
             await self.user_repository.update(
                 target_user_id,
                 user_schema
             )
-        except IntegrityError:
+        except IntegrityError as e:
             raise HTTPException(
                 status_code=400,
-                detail='Email already exists'
+                detail=f'Email already exists {e}'
             )
 
         user_model = await self.user_repository.get_by_id(
             target_user_id
         )
-        return UserOutSchema.model_validate(user_model)
+
+        avatar_url = await self.s3_service.generate_presigned_url(
+            user_model.avatar_key
+        ) if user_model.avatar_key else None
+
+        return UserOutSchema.model_validate(
+            {
+                **user_model.__dict__,
+                'avatar_url': avatar_url
+            }
+        )
 
     async def delete_user(
             self,

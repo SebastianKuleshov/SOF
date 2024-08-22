@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
 from app.common.services import SearchService
+from app.common.services.aws_s3 import S3Service
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
@@ -22,7 +23,8 @@ class QuestionService:
             answer_repository: Annotated[AnswerRepository, Depends()],
             tag_repository: Annotated[TagRepository, Depends()],
             search_service: Annotated[SearchService, Depends()],
-            user_service: Annotated[UserService, Depends()]
+            user_service: Annotated[UserService, Depends()],
+            s3_service: Annotated[S3Service, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
@@ -30,6 +32,7 @@ class QuestionService:
         self.tag_repository = tag_repository
         self.search_service = search_service
         self.user_service = user_service
+        self.s3_service = s3_service
 
     async def create_question(
             self,
@@ -74,9 +77,19 @@ class QuestionService:
                 } for answer in question.answers
             ]
 
+        user_model = question.user
+        avatar_url = await self.s3_service.generate_presigned_url(
+            user_model.avatar_key
+        ) if user_model.avatar_key else None
+        user_schema = {
+            **user_model.__dict__,
+            'avatar_url': avatar_url
+        }
+
         return QuestionWithJoinsOutSchema.model_validate(
             {
                 **question.__dict__,
+                'user': user_schema,
                 'answers': answers_with_user_vote,
                 'current_user_id': user_id
             }
@@ -94,7 +107,16 @@ class QuestionService:
         )
         return [
             QuestionForListOutSchema.model_validate(
-                question
+                {
+                    **question.__dict__,
+                    'user': {
+                        **question.user.__dict__,
+                        'avatar_url': await self.s3_service.generate_presigned_url(
+                            question.user.avatar_key
+                        ) if question.user.avatar_key else None
+                    }
+
+                }
             )
             for question in questions
         ]

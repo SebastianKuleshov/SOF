@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
-from app.auth.repositories.auth import AuthRepository
+from app.auth.repositories import AuthRepository
 from app.auth.schemas import TokenBaseSchema
 from app.dependencies import get_settings, oauth2_scheme, verify_password
 from app.users.models import UserModel

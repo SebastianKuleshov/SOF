@@ -31,6 +31,7 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     password: Mapped[str] = mapped_column(nullable=False)
     biography: Mapped[str] = mapped_column(nullable=True)
     reputation: Mapped[int] = mapped_column(default=0)
+    avatar_key: Mapped[str] = mapped_column(nullable=True)
 
     questions: Mapped[list['QuestionModel']] = relationship(
         'QuestionModel',
