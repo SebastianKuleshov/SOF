@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 
-from app.common.services.aws_s3 import S3Service
+from app.aws_s3.services import S3Service
 from app.dependencies import get_password_hash
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreateSchema, UserOutSchema, \
-    UserUpdateSchema, UserUpdatePayloadSchema
+    UserUpdateSchema
 
 
 class UserService:
@@ -50,9 +50,9 @@ class UserService:
             user_id: int
     ) -> UserOutSchema:
         user_model = await self.user_repository.get_by_id(user_id)
-        avatar_url = await self.s3_service.generate_presigned_url(
-            user_model.avatar_key
-        ) if user_model.avatar_key else None
+        avatar_url = await self.s3_service.generate_avatar_presigned_url(
+            user_id
+        )
 
         return UserOutSchema.model_validate(
             {
@@ -71,9 +71,9 @@ class UserService:
             UserOutSchema.model_validate(
                 {
                     **user.__dict__,
-                    'avatar_url': await self.s3_service.generate_presigned_url(
-                        user.avatar_key
-                    ) if user.avatar_key else None
+                    'avatar_url': await self.s3_service.generate_avatar_presigned_url(
+                        user.id
+                    )
                 }
             ) for user in users
         ]
@@ -85,25 +85,22 @@ class UserService:
             user_schema: UserUpdateSchema,
             file: UploadFile
     ) -> UserOutSchema:
-        user = await self.user_repository.get_entity_if_exists(target_user_id)
-        if user.id != requesting_user_id:
+        user_model = await self.user_repository.get_entity_if_exists(
+            target_user_id
+        )
+        if user_model.id != requesting_user_id:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to update this user'
             )
 
         if file:
-            avatar_key = await self.s3_service.upload_file(
-                user,
+            user_avatar_key = await self.s3_service.upload_user_avatar(
+                user_model,
                 file
             )
         else:
-            avatar_key = None
-
-        user_schema = UserUpdatePayloadSchema(
-            **user_schema.model_dump(exclude_unset=True),
-            avatar_key=avatar_key
-        )
+            user_avatar_key = None
 
         try:
             await self.user_repository.update(
@@ -116,13 +113,9 @@ class UserService:
                 detail=f'Email already exists {e}'
             )
 
-        user_model = await self.user_repository.get_by_id(
-            target_user_id
+        avatar_url = await self.s3_service.generate_avatar_presigned_url(
+            user_model.id
         )
-
-        avatar_url = await self.s3_service.generate_presigned_url(
-            user_model.avatar_key
-        ) if user_model.avatar_key else None
 
         return UserOutSchema.model_validate(
             {

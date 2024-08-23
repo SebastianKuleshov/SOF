@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile
 from pydantic import Json
 
 from app.auth.services import AuthService
@@ -50,8 +50,7 @@ async def get_users(
 )
 async def get_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: int = Annotated[
-            AuthService.get_user_id_from_request, Depends()]
+        user_id: int
 ):
     return await user_service.get_user(user_id)
 
@@ -59,14 +58,14 @@ async def get_user(
 # Private routes
 
 @private_router.get(
-    '/me',
+    '/me/',
     response_model=user_schemas.UserOutSchema
 )
 async def get_current_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()]
 ):
-    return await user_service.user_repository.get_by_id(user_id)
+    return await user_service.get_user(user_id)
 
 
 @private_router.put(

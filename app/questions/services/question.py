@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
+from app.aws_s3.services import S3Service
 from app.common.services import SearchService
-from app.common.services.aws_s3 import S3Service
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
@@ -78,9 +78,9 @@ class QuestionService:
             ]
 
         user_model = question.user
-        avatar_url = await self.s3_service.generate_presigned_url(
-            user_model.avatar_key
-        ) if user_model.avatar_key else None
+        avatar_url = await self.s3_service.generate_avatar_presigned_url(
+            user_model.id
+        )
         user_schema = {
             **user_model.__dict__,
             'avatar_url': avatar_url
@@ -111,9 +111,10 @@ class QuestionService:
                     **question.__dict__,
                     'user': {
                         **question.user.__dict__,
-                        'avatar_url': await self.s3_service.generate_presigned_url(
-                            question.user.avatar_key
-                        ) if question.user.avatar_key else None
+                        'avatar_url': await
+                        self.s3_service.generate_avatar_presigned_url(
+                            question.user.id
+                        )
                     }
 
                 }
