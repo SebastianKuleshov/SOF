@@ -5,7 +5,7 @@ from fastapi_keycloak import KeycloakError
 from sqlalchemy.exc import IntegrityError
 
 from app.aws_s3.services import S3Service
-from app.dependencies import get_password_hash, keycloak_admin
+from app.dependencies import get_password_hash, keycloak_admin, keycloak_openid
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
@@ -59,8 +59,6 @@ class UserService:
                 detail='Failed to create user in Keycloak'
             )
 
-
-
         user_model = await self.user_repository.create(user)
 
 
@@ -95,6 +93,9 @@ class UserService:
             limit: int
     ) -> list[UserOutSchema]:
         users = await self.user_repository.get_multi(skip, limit)
+
+        print(await keycloak_openid.a_token('string123', 'string3!G'))
+
         return [
             UserOutSchema.model_validate(
                 {
