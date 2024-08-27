@@ -10,6 +10,9 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
+from app.permissions.models import PermissionModel
+from app.roles.models import RoleModel
+
 # revision identifiers, used by Alembic.
 revision: str = 'd3a84f8c2b45'
 down_revision: Union[str, None] = 'bb1f0b636ff8'
@@ -58,9 +61,8 @@ def upgrade() -> None:
     )
 
     connection = op.get_bind()
-    roles = connection.execute(
-        sa.text("SELECT id, name FROM roles")
-    ).fetchall()
+    session = sa.orm.Session(connection)
+    roles = session.execute(sa.select(RoleModel.id, RoleModel.name)).all()
     role_dict = {
         role[1]: role[0]
         for role in roles
@@ -169,27 +171,34 @@ def downgrade() -> None:
         'create_role',
         'attach_role',
         'ban_user',
-        'unban_user'
+        'unban_user',
+        'create_tag',
+        'delete_tag',
+        'upvote',
+        'downvote'
     ]
 
-    permission_ids = connection.execute(
-        sa.text(
-            "SELECT id FROM permissions WHERE name = ANY(:permissions)"
-        ).params(permissions=permissions)
-    ).fetchall()
+    session = sa.orm.Session(connection)
+    permission_ids = session.execute(
+        sa.select(PermissionModel.id).where(
+            PermissionModel.name.in_(permissions)
+        )
+    ).all()
 
     permission_ids = [perm_id[0] for perm_id in permission_ids]
 
     # Delete from permission_role table
-    op.execute(
-        sa.text(
-            "DELETE FROM permission_role WHERE permission_id = ANY(:permission_ids)"
-        ).params(permission_ids=permission_ids)
+
+    session.execute(
+        sa.delete(sa.table('permission_role')).where(
+            sa.column('permission_id').in_(permission_ids)
+        )
     )
 
     # Delete permissions themselves
-    op.execute(
-        sa.text(
-            "DELETE FROM permissions WHERE id = ANY(:permission_ids)"
-        ).params(permission_ids=permission_ids)
+
+    session.execute(
+        sa.delete(sa.table('permissions')).where(
+            sa.column('id').in_(permission_ids)
+        )
     )

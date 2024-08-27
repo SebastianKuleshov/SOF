@@ -289,6 +289,30 @@ class AuthService:
 
         return True
 
+    @staticmethod
+    def require_permissions(
+            required_permissions: set[str]
+    ) -> callable:
+        def check_permissions(
+                request: Request
+        ) -> bool:
+            user = request.state.user
+
+            user_permissions = set()
+            for role in user.roles:
+                user_permissions.update(
+                    permission.name for permission in role.permissions
+                )
+
+            if not required_permissions.issubset(user_permissions):
+                raise HTTPException(
+                    status_code=403,
+                    detail='Permission denied'
+                )
+            return True
+
+        return check_permissions
+
     class PermissionChecker:
         def __init__(
                 self,
