@@ -167,3 +167,5 @@ databases/
 redis/
 !/app/core/adapters/
 redis_data/
+kc_databases/
+keycloak/

@@ -3,11 +3,18 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.params import Security
+from fastapi.security import OAuth2PasswordRequestForm, \
+    HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import EmailStr
 
 from app.auth.repositories import AuthRepository
+from app.auth.schemas import EmailCreateSchema, \
+    EmailCreatePayloadSchema
 from app.auth.schemas import TokenBaseSchema
+from app.common.schemas_mixins import PasswordCreationMixin
+from app.common.services import EmailService
+from app.dependencies import get_password_hash
 from app.dependencies import get_settings, oauth2_scheme, verify_password
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
@@ -20,11 +27,13 @@ class AuthService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             auth_repository: Annotated[AuthRepository, Depends()],
-            user_service: Annotated[UserService, Depends()]
+            user_service: Annotated[UserService, Depends()],
+            email_service: Annotated[EmailService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.auth_repository = auth_repository
         self.user_service = user_service
+        self.email_service = email_service
 
     @staticmethod
     async def create_token(
@@ -103,6 +112,40 @@ class AuthService:
         request.state.user = user
         return UserOutSchema.model_validate(user)
 
+    @classmethod
+    async def get_user_id_from_reset_password_jwt(
+            cls,
+            user_repository: Annotated[UserRepository, Depends()],
+            token: HTTPAuthorizationCredentials = Security(
+                HTTPBearer(scheme_name="Reset password")
+            )
+    ) -> int:
+        token = token.credentials
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Could not validate credentials',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+
+        settings = get_settings()
+
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM]
+            )
+
+            user = await user_repository.get_one(
+                {'email': payload.get('sub')}
+            )
+            if user is None:
+                raise credentials_exception
+        except jwt.PyJWTError:
+            raise credentials_exception
+
+        return user.id
+
     async def __generate_token(
             self,
             user_id: int,
@@ -133,7 +176,7 @@ class AuthService:
             refresh_token_expire_delta
         )
 
-        await self.auth_repository.create(
+        await self.auth_repository.create_tokens(
             user_id,
             refresh_token,
             access_token
@@ -189,6 +232,63 @@ class AuthService:
         await self.auth_repository.delete_user_tokens(user.id)
 
         return await self.__generate_token(user.id, user.nick_name)
+
+    async def forgot_password(
+            self,
+            email_schema: EmailCreateSchema
+    ) -> bool:
+        user = await self.user_repository.get_one(
+            {'email': email_schema.recipient}
+        )
+        if not user:
+            raise HTTPException(
+                status_code=400,
+                detail='User not found'
+            )
+        settings = get_settings()
+
+        to_encode = {'sub': email_schema.recipient}
+
+        verification_token_expire_delta = timedelta(
+            minutes=settings.VERIFICATION_TOKEN_EXPIRE_MINUTES
+        )
+        verification_to_encode = to_encode.copy()
+
+        verification_token = await self.create_token(
+            verification_to_encode,
+            verification_token_expire_delta
+        )
+
+        verification_url = (
+            f'{settings.BASE_URL}/auth/reset-password?verification_token'
+            f'={verification_token}'
+        )
+
+        email_schema = EmailCreatePayloadSchema(
+            **email_schema.model_dump(),
+            subject='YOUR URL',
+            body=f'Your verification url is {verification_url}',
+        )
+
+        return await self.email_service.send_email(
+            email_schema
+        )
+
+    async def reset_password(
+            self,
+            user_id: int,
+            new_password_data: PasswordCreationMixin
+    ) -> bool:
+        new_password_data.password = await get_password_hash(
+            new_password_data.password
+        )
+
+        await self.user_service.user_repository.update(
+            user_id,
+            new_password_data
+        )
+
+        return True
 
     class PermissionChecker:
         def __init__(
