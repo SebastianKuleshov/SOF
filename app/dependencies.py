@@ -1,5 +1,6 @@
 from functools import lru_cache
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, OAuth2, \
+    OAuth2AuthorizationCodeBearer
 from passlib.context import CryptContext
 
 from app.core.config import Settings
@@ -7,6 +8,7 @@ from app.core.config import Settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+reset_password_token_scheme = HTTPBearer()
 
 
 @lru_cache()

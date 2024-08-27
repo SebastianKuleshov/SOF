@@ -2,8 +2,9 @@ from datetime import timedelta, datetime, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status, Request, Header
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm, \
+    HTTPAuthorizationCredentials
 from pydantic import EmailStr
 
 from app.auth.repositories import AuthRepository
@@ -12,7 +13,7 @@ from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
 from app.common.schemas_mixins import PasswordCreationMixin
 from app.common.services import EmailService
 from app.dependencies import get_settings, oauth2_scheme, verify_password, \
-    get_password_hash
+    get_password_hash, reset_password_token_scheme
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema
@@ -111,40 +112,33 @@ class AuthService:
     @classmethod
     async def get_user_id_from_reset_password_jwt(
             cls,
-            auth: Annotated[str, Header()],
-            user_repository: Annotated[UserRepository, Depends()]
+            user_repository: Annotated[UserRepository, Depends()],
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(
+                reset_password_token_scheme)]
     ) -> int:
-        if not auth.startswith("Bearer "):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid authorization header format"
-            )
-
-        verification_token = auth.split("Bearer ")[1]
+        token = credentials.credentials
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Could not validate credentials',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
 
         settings = get_settings()
 
         try:
             payload = jwt.decode(
-                verification_token,
+                token,
                 settings.SECRET_KEY,
                 algorithms=[settings.ALGORITHM]
             )
+
+            user = await user_repository.get_one(
+                {'email': payload.get('sub')}
+            )
+            if user is None:
+                raise credentials_exception
         except jwt.PyJWTError:
-            raise HTTPException(
-                status_code=400,
-                detail='Invalid token'
-            )
-
-        user = await user_repository.get_one(
-            {'email': payload.get('sub')}
-        )
-
-        if not user:
-            raise HTTPException(
-                status_code=400,
-                detail='User not found'
-            )
+            raise credentials_exception
 
         return user.id
 
