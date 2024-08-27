@@ -69,7 +69,7 @@ class S3Service:
                 'avatars'
             )
 
-        s3_file = await self.s3_repository.create(
+        await self.s3_repository.create(
             S3FileBaseSchema(
                 folder='avatars',
                 name=file.filename,
@@ -77,8 +77,11 @@ class S3Service:
             )
         )
 
+        print(s3_file.name)
+        print(file.filename)
+
         if s3_file.name != file.filename:
-            await self.delete_file(s3_file.id)
+            await self.delete_file(s3_file)
         return object_name
 
     async def delete_file(

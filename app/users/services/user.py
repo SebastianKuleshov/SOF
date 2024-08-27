@@ -95,12 +95,10 @@ class UserService:
             )
 
         if file:
-            user_avatar_key = await self.s3_service.upload_user_avatar(
+            await self.s3_service.upload_user_avatar(
                 user_model,
                 file
             )
-        else:
-            user_avatar_key = None
 
         try:
             await self.user_repository.update(
