@@ -28,7 +28,7 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     id: Mapped[int_pk]
     nick_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
-    password: Mapped[str] = mapped_column(nullable=False)
+    password: Mapped[str] = mapped_column(nullable=True)
     biography: Mapped[str] = mapped_column(nullable=True)
     reputation: Mapped[int] = mapped_column(default=0)
 
