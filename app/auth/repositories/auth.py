@@ -13,7 +13,7 @@ class AuthRepository:
     ) -> None:
         self.redis = redis
 
-    async def create(
+    async def create_tokens(
             self,
             user_id: int,
             refresh_token: str,

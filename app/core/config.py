@@ -9,6 +9,13 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
+    VERIFICATION_TOKEN_EXPIRE_MINUTES: int
+    EMAIL_SMTP_HOST: str
+    EMAIL_SMTP_PORT: int
+    EMAIL_SMTP_TLS: bool
+    EMAIL_SMTP_USERNAME: str
+    EMAIL_SMTP_PASSWORD: str
+    BASE_URL: str
 
     class Config:
         env_file = './app/.env'
