@@ -22,7 +22,13 @@ class Settings(BaseSettings):
     AWS_REGION: str
     AWS_BUCKET_URL: str
     ALLOWED_IMAGE_TYPES: list[str]
-
+    KEYCLOAK_SERVER_URL: str
+    KEYCLOAK_CLIENT_ID: str
+    KEYCLOAK_CLIENT_SECRET: str
+    KEYCLOAK_ADMIN_CLIENT_ID: str
+    KEYCLOAK_ADMIN_CLIENT_SECRET: str
+    KEYCLOAK_REALM: str
+    KEYCLOAK_CALLBACK_URI: str
 
     class Config:
         env_file = './app/.env'

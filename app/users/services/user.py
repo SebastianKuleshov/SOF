@@ -1,10 +1,11 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, UploadFile
+from fastapi_keycloak import KeycloakError
 from sqlalchemy.exc import IntegrityError
 
 from app.aws_s3.services import S3Service
-from app.dependencies import get_password_hash
+from app.dependencies import get_password_hash, keycloak_admin
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
@@ -27,6 +28,7 @@ class UserService:
             self,
             user: UserCreateSchema
     ) -> UserOutSchema:
+
         if await self.user_repository.get_one(
                 {'email': user.email}
         ) is not None:
@@ -34,15 +36,41 @@ class UserService:
                 status_code=400,
                 detail='Email already exists'
             )
-        user.password = await get_password_hash(user.password)
+
+        try:
+            await keycloak_admin.a_create_user(
+                {
+                    'email': user.email,
+                    'username': user.nick_name,
+                    'enabled': True,
+                    'emailVerified': False,
+                    'credentials': [
+                        {
+                            'type': 'password',
+                            'value': user.password,
+                            'temporary': False
+                        }
+                    ]
+                }
+            )
+        except KeycloakError:
+            raise HTTPException(
+                status_code=400,
+                detail='Failed to create user in Keycloak'
+            )
+
+
+
         user_model = await self.user_repository.create(user)
 
-        roles = await self.role_repository.get_roles_by_name(['user'])
-        await self.user_repository.attach_roles_to_user(
-            user_model.id,
-            roles
-        )
 
+        #
+        # roles = await self.role_repository.get_roles_by_name(['user'])
+        # await self.user_repository.attach_roles_to_user(
+        #     user_model.id,
+        #     roles
+        # )
+        #
         return UserOutSchema.model_validate(user_model)
 
     async def get_user(

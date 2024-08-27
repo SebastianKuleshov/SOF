@@ -5,6 +5,7 @@ from app.answers.routes import router as answers_router
 from app.auth.routes import router as auth_router
 from app.comments.routes import router as comments_router
 from app.dependencies import get_settings
+from app.permissions.routes import router as permissions_router
 from app.questions.routes import private_router as private_questions_router
 from app.questions.routes import public_router as public_questions_router
 from app.questions.routes import search_router as search_questions_router
@@ -12,7 +13,6 @@ from app.tags.routes import private_router as private_tags_router
 from app.tags.routes import public_router as public_tags_router
 from app.users.routes import private_router as private_user_router
 from app.users.routes import public_router as public_user_router
-from app.permissions.routes import router as permissions_router
 
 settings = get_settings()
 
