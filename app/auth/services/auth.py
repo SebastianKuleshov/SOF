@@ -2,7 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 
@@ -107,6 +107,46 @@ class AuthService:
 
         request.state.user_id = user_id
         return user
+
+    @classmethod
+    async def get_user_id_from_reset_password_jwt(
+            cls,
+            auth: Annotated[str, Header()],
+            user_repository: Annotated[UserRepository, Depends()]
+    ) -> int:
+        if not auth.startswith("Bearer "):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid authorization header format"
+            )
+
+        verification_token = auth.split("Bearer ")[1]
+
+        settings = get_settings()
+
+        try:
+            payload = jwt.decode(
+                verification_token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM]
+            )
+        except jwt.PyJWTError:
+            raise HTTPException(
+                status_code=400,
+                detail='Invalid token'
+            )
+
+        user = await user_repository.get_one(
+            {'email': payload.get('sub')}
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=400,
+                detail='User not found'
+            )
+
+        return user.id
 
     async def __generate_token(
             self,
@@ -238,47 +278,16 @@ class AuthService:
 
     async def reset_password(
             self,
-            authorization: str,
+            user_id: int,
             new_password_data: PasswordCreationMixin
     ) -> bool:
+        new_password_data.password = await get_password_hash(
+            new_password_data.password
+        )
 
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid authorization header format"
-            )
+        await self.user_service.user_repository.update(
+            user_id,
+            new_password_data
+        )
 
-        verification_token = authorization.split("Bearer ")[1]
-
-        settings = get_settings()
-        try:
-            payload = jwt.decode(
-                verification_token,
-                settings.SECRET_KEY,
-                algorithms=[settings.ALGORITHM]
-            )
-            user = await self.user_repository.get_one(
-                {'email': payload.get('sub')}
-            )
-
-            if not user:
-                raise HTTPException(
-                    status_code=400,
-                    detail='User not found'
-                )
-            new_password_data.password = await get_password_hash(
-                new_password_data.password
-            )
-
-            await self.user_service.user_repository.update(
-                user.id,
-                new_password_data
-            )
-
-            return True
-        except jwt.PyJWTError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Could not validate credentials',
-                headers={'WWW-Authenticate': 'Bearer'},
-            )
+        return True
