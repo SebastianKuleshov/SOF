@@ -3,8 +3,9 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status, Request
+from fastapi.params import Security
 from fastapi.security import OAuth2PasswordRequestForm, \
-    HTTPAuthorizationCredentials
+    HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import EmailStr
 
 from app.auth.repositories import AuthRepository
@@ -13,7 +14,7 @@ from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
 from app.common.schemas_mixins import PasswordCreationMixin
 from app.common.services import EmailService
 from app.dependencies import get_settings, oauth2_scheme, verify_password, \
-    get_password_hash, reset_password_token_scheme
+    get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema
@@ -113,10 +114,11 @@ class AuthService:
     async def get_user_id_from_reset_password_jwt(
             cls,
             user_repository: Annotated[UserRepository, Depends()],
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(
-                reset_password_token_scheme)]
+            token: HTTPAuthorizationCredentials = Security(
+                HTTPBearer(scheme_name="Reset password")
+            )
     ) -> int:
-        token = credentials.credentials
+        token = token.credentials
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Could not validate credentials',

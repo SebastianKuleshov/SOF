@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Request, Security
+from fastapi.security import OAuth2PasswordRequestForm, \
+    HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth import schemas
 from app.auth.services import AuthService
@@ -31,9 +32,14 @@ async def login(
 async def refresh(
         request: Request,
         auth_service: Annotated[AuthService, Depends()],
-        refresh_token: str
+        refresh_token: HTTPAuthorizationCredentials = Security(
+            HTTPBearer(scheme_name="Refresh token")
+        )
 ):
-    return await auth_service.refresh(request, refresh_token)
+    return await auth_service.refresh(
+        request,
+        refresh_token.credentials
+    )
 
 
 @router.post(
