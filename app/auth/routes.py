@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Header
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Request, Security
+from fastapi.security import OAuth2PasswordRequestForm, \
+    HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth import schemas
 from app.auth.services import AuthService
@@ -31,9 +32,14 @@ async def login(
 async def refresh(
         request: Request,
         auth_service: Annotated[AuthService, Depends()],
-        refresh_token: str
+        refresh_token: HTTPAuthorizationCredentials = Security(
+            HTTPBearer(scheme_name="Refresh token")
+        )
 ):
-    return await auth_service.refresh(request, refresh_token)
+    return await auth_service.refresh(
+        request,
+        refresh_token.credentials
+    )
 
 
 @router.post(
@@ -63,9 +69,9 @@ async def forgot_password(
 async def reset_password(
         auth_service: Annotated[AuthService, Depends()],
         new_password_data: PasswordCreationMixin,
-        auth: Annotated[str, Header()]
+        user_id: int = Depends(AuthService.get_user_id_from_reset_password_jwt)
 ) -> bool:
     return await auth_service.reset_password(
-        auth,
+        user_id,
         new_password_data
     )
