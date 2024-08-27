@@ -14,6 +14,9 @@ class UserCreateSchema(PasswordCreationMixin, UserBaseSchema):
     nick_name: str
 
 
+class UserCreatePayloadSchema(UserCreateSchema):
+    id: str
+
 class UserLoginSchema(BaseModel):
     password: str
 
@@ -29,7 +32,7 @@ class UserUpdatePayloadSchema(UserUpdateSchema):
 
 
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
-    id: int
+    id: str
     nick_name: str
     biography: str | None = None
     reputation: int

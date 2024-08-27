@@ -11,7 +11,7 @@ class S3FileModel(Base):
     id: Mapped[int_pk]
     folder: Mapped[str]
     name: Mapped[str]
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE')
     )
 

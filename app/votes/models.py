@@ -14,7 +14,7 @@ class VotesModel(Base):
     )
 
     id: Mapped[int_pk]
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE')
     )
     question_id: Mapped[int] = mapped_column(

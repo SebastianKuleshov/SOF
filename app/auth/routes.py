@@ -30,27 +30,26 @@ async def login(
     response_model=schemas.TokenBaseSchema
 )
 async def refresh(
-        request: Request,
         auth_service: Annotated[AuthService, Depends()],
         refresh_token: HTTPAuthorizationCredentials = Security(
             HTTPBearer(scheme_name="Refresh token")
         )
 ):
     return await auth_service.refresh(
-        request,
         refresh_token.credentials
     )
 
 
 @router.post(
-    '/logout',
-    dependencies=[Depends(AuthService.get_user_from_jwt)],
+    '/logout'
 )
 async def logout(
-        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
-        auth_service: Annotated[AuthService, Depends()]
+        auth_service: Annotated[AuthService, Depends()],
+        refresh_token: HTTPAuthorizationCredentials = Security(
+            HTTPBearer(scheme_name="Refresh token")
+        )
 ) -> bool:
-    return await auth_service.auth_repository.delete_user_tokens(user_id)
+    return await auth_service.logout(refresh_token.credentials)
 
 
 @router.post(

@@ -29,7 +29,7 @@ class QuestionModel(CreatedAtUpdatedAtMixin, Base):
     title: Mapped[str]
     body: Mapped[Text]
     accepted_answer_id: Mapped[int] = mapped_column(nullable=True)
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE')
     )
 

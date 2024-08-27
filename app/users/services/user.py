@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, UploadFile
 from fastapi_keycloak import KeycloakError
+from keycloak import KeycloakPostError
 from sqlalchemy.exc import IntegrityError
 
 from app.aws_s3.services import S3Service
@@ -10,7 +11,7 @@ from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreateSchema, UserOutSchema, \
-    UserUpdateSchema
+    UserUpdateSchema, UserCreatePayloadSchema
 
 
 class UserService:
@@ -38,7 +39,7 @@ class UserService:
             )
 
         try:
-            await keycloak_admin.a_create_user(
+            user_id = await keycloak_admin.a_create_user(
                 {
                     'email': user.email,
                     'username': user.nick_name,
@@ -53,11 +54,18 @@ class UserService:
                     ]
                 }
             )
-        except KeycloakError:
+        except KeycloakPostError:
             raise HTTPException(
                 status_code=400,
                 detail='Failed to create user in Keycloak'
             )
+
+        user = UserCreatePayloadSchema(
+            **user.model_dump(),
+            id=user_id,
+            password=user.password,
+            repeat_password=user.password
+        )
 
         user_model = await self.user_repository.create(user)
 
@@ -94,7 +102,6 @@ class UserService:
     ) -> list[UserOutSchema]:
         users = await self.user_repository.get_multi(skip, limit)
 
-        print(await keycloak_openid.a_token('string123', 'string3!G'))
 
         return [
             UserOutSchema.model_validate(
