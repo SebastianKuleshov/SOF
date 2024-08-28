@@ -16,7 +16,8 @@ router = APIRouter(
 @router.post(
     '/',
     response_model=comments_schemas.CommentOutSchema,
-    dependencies=[Depends(AuthService.PermissionChecker(['create_own_comment']))]
+    dependencies=[Depends(AuthService.require_permissions(
+        {'create_own_comment'}))]
 )
 async def create_comment(
         comment_service: Annotated[CommentService, Depends()],
@@ -32,7 +33,7 @@ async def create_comment(
 @router.put(
     '/{comment_id}',
     response_model=comments_schemas.CommentOutSchema,
-    dependencies=[Depends(AuthService.PermissionChecker(['update_own_comment']))]
+    dependencies=[Depends(AuthService.require_permissions({'update_own_comment'}))]
 )
 async def update_comment(
         comment_service: Annotated[CommentService, Depends()],
@@ -49,7 +50,8 @@ async def update_comment(
 
 @router.delete(
     '/{comment_id}',
-    dependencies=[Depends(AuthService.PermissionChecker(['delete_own_comment']))]
+    dependencies=[Depends(AuthService.require_permissions(
+        {'delete_own_comment'}))]
 )
 async def delete_comment(
         comment_service: Annotated[CommentService, Depends()],

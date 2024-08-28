@@ -90,7 +90,13 @@ async def create_question(
 @private_router.post(
     '/votes/upvote',
     response_model=vote_schemas.VoteOutSchema,
-    dependencies=[Depends(AuthService.PermissionChecker(['upvote']))]
+    dependencies=[Depends(
+        AuthService.require_permissions(
+            {
+                'upvote'
+            }
+        )
+    )]
 )
 async def upvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -108,7 +114,7 @@ async def upvote_question(
 @private_router.post(
     '/votes/downvote',
     response_model=vote_schemas.VoteOutSchema,
-    dependencies=[Depends(AuthService.PermissionChecker(['downvote']))]
+    dependencies=[Depends(AuthService.require_permissions({'downvote'}))]
 )
 async def downvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -125,7 +131,7 @@ async def downvote_question(
 
 @private_router.delete(
     '/votes/revoke-upvote',
-    dependencies=[Depends(AuthService.PermissionChecker(['upvote']))]
+    dependencies=[Depends(AuthService.require_permissions({'upvote'}))]
 )
 async def revoke_upvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -142,7 +148,7 @@ async def revoke_upvote_question(
 
 @private_router.delete(
     '/votes/revoke-downvote',
-    dependencies=[Depends(AuthService.PermissionChecker(['downvote']))]
+    dependencies=[Depends(AuthService.require_permissions({'downvote'}))]
 )
 async def revoke_downvote_question(
         vote_service: Annotated[VoteService, Depends()],
@@ -161,7 +167,7 @@ async def revoke_downvote_question(
     '/votes/{question_id}',
     response_model=question_schemas.QuestionWithJoinsOutSchema,
     dependencies=[
-        Depends(AuthService.PermissionChecker(['read_any_question']))]
+        Depends(AuthService.require_permissions({'read_any_question'}))]
 )
 async def get_question_with_user_vote(
         question_service: Annotated[QuestionService, Depends()],
@@ -178,7 +184,7 @@ async def get_question_with_user_vote(
     '/{question_id}',
     response_model=question_schemas.QuestionWithJoinsOutSchema,
     dependencies=[
-        Depends(AuthService.PermissionChecker(['update_own_question']))]
+        Depends(AuthService.require_permissions({'update_own_question'}))]
 )
 async def update_question(
         question_service: Annotated[QuestionService, Depends()],
@@ -196,7 +202,7 @@ async def update_question(
 @private_router.delete(
     '/{question_id}',
     dependencies=[
-        Depends(AuthService.PermissionChecker(['delete_own_question']))]
+        Depends(AuthService.require_permissions({'delete_own_question'}))]
 )
 async def delete_question(
         question_service: Annotated[QuestionService, Depends()],

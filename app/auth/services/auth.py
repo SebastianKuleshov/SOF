@@ -17,7 +17,7 @@ from app.dependencies import get_settings, oauth2_scheme, verify_password, \
     get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
-from app.users.schemas import UserOutSchema
+from app.users.schemas import UserOutSchema, UserInRequestSchema
 from app.users.services import UserService
 
 
@@ -106,9 +106,16 @@ class AuthService:
         user = await user_repository.get_by_id_with_roles(user_id)
         if user is None:
             raise credentials_exception
+        user_permissions = await user_repository.get_user_permissions(user_id)
 
         request.state.user_id = user_id
-        request.state.user = user
+        user_schema = UserInRequestSchema.model_validate(
+            {
+                **user.__dict__,
+                'permissions': user_permissions
+            }
+        )
+        request.state.user = user_schema
         return UserOutSchema.model_validate(user)
 
     @classmethod
@@ -298,11 +305,7 @@ class AuthService:
         ) -> bool:
             user = request.state.user
 
-            user_permissions = set()
-            for role in user.roles:
-                user_permissions.update(
-                    permission.name for permission in role.permissions
-                )
+            user_permissions = user.permissions
 
             if not required_permissions.issubset(user_permissions):
                 raise HTTPException(
@@ -312,39 +315,3 @@ class AuthService:
             return True
 
         return check_permissions
-
-    class PermissionChecker:
-        def __init__(
-                self,
-                allowed_permissions: list[str] | None = None
-        ) -> None:
-            self.allowed_permissions = allowed_permissions or []
-
-        def __call__(
-                self,
-                request: Request
-        ) -> bool:
-            user = request.state.user
-            user_permissions = set()
-
-            # Collect all permissions from all roles
-            for role in user.roles:
-                if role.name == 'banned':
-                    raise HTTPException(
-                        status_code=403,
-                        detail='User is banned'
-                    )
-
-                user_permissions.update(
-                    permission.name for permission in role.permissions
-                )
-
-            # Check if the user has the required permissions
-            for permission in self.allowed_permissions:
-                if permission not in user_permissions:
-                    raise HTTPException(
-                        status_code=403,
-                        detail='Permission denied'
-                    )
-
-            return True

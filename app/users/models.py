@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import Table, Column, ForeignKey, text, join
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 
@@ -64,5 +64,13 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         'RoleModel',
         secondary='role_user',
         back_populates='users',
+        lazy='noload'
+    )
+
+    permissions: Mapped[list['PermissionModel']] = relationship(
+        'PermissionModel',
+        secondary='''join(role_user, permission_role,
+        role_user.c.role_id == permission_role.c.role_id)''',
+        viewonly=True,
         lazy='noload'
     )
