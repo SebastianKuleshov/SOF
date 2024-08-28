@@ -10,6 +10,7 @@ from app.answers.schemas import AnswerCreateSchema, AnswerUpdateSchema, \
     AnswerOutSchema
 from app.questions.repositories import QuestionRepository
 from app.users.repositories import UserRepository
+from app.users.services import UserService
 
 
 class AnswerService:
@@ -17,11 +18,13 @@ class AnswerService:
             self,
             answer_repository: Annotated[AnswerRepository, Depends()],
             question_repository: Annotated[QuestionRepository, Depends()],
-            user_repository: Annotated[UserRepository, Depends()]
+            user_repository: Annotated[UserRepository, Depends()],
+            user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.answer_repository = answer_repository
         self.question_repository = question_repository
         self.user_repository = user_repository
+        self.user_service = user_service
 
     async def create_answer(
             self,
@@ -50,7 +53,10 @@ class AnswerService:
             answer_schema: AnswerUpdateSchema
     ) -> AnswerWithJoinsOutSchema:
         answer = await self.answer_repository.get_entity_if_exists(answer_id)
-        if answer.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(
+            user_id
+        )
+        if answer.user_id != user_id and 'update_any_answer' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to update this answer'
@@ -71,7 +77,10 @@ class AnswerService:
             user_id: int
     ) -> bool:
         answer = await self.answer_repository.get_entity_if_exists(answer_id)
-        if answer.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(
+            user_id
+        )
+        if answer.user_id != user_id and 'delete_any_answer' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to delete this answer'

@@ -11,6 +11,7 @@ from app.questions.schemas import QuestionCreateSchema, \
     QuestionUpdatePayloadSchema, QuestionUpdateSchema
 from app.tags.repositories import TagRepository
 from app.users.repositories import UserRepository
+from app.users.services import UserService
 
 
 class QuestionService:
@@ -20,13 +21,15 @@ class QuestionService:
             user_repository: Annotated[UserRepository, Depends()],
             answer_repository: Annotated[AnswerRepository, Depends()],
             tag_repository: Annotated[TagRepository, Depends()],
-            search_service: Annotated[SearchService, Depends()]
+            search_service: Annotated[SearchService, Depends()],
+            user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
         self.answer_repository = answer_repository
         self.tag_repository = tag_repository
         self.search_service = search_service
+        self.user_service = user_service
 
     async def create_question(
             self,
@@ -115,7 +118,11 @@ class QuestionService:
                     detail='Answer does not belong to this question'
                 )
 
-        if question.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(
+            user_id
+        )
+
+        if question.user_id != user_id and 'update_any_question' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to update this question'
@@ -156,7 +163,11 @@ class QuestionService:
         question = await self.question_repository.get_entity_if_exists(
             question_id
         )
-        if question.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(
+            user_id
+        )
+
+        if question.user_id != user_id and 'delete_any_question' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to delete this question'

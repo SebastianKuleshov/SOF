@@ -7,6 +7,7 @@ from app.comments.repositories import CommentRepository
 from app.comments.schemas import CommentCreateSchema, CommentOutSchema, \
     CommentCreatePayloadSchema, CommentUpdateSchema
 from app.questions.repositories import QuestionRepository
+from app.users.services import UserService
 
 
 class CommentService:
@@ -14,11 +15,13 @@ class CommentService:
             self,
             comment_repository: Annotated[CommentRepository, Depends()],
             question_repository: Annotated[QuestionRepository, Depends()],
-            answer_repository: Annotated[AnswerRepository, Depends()]
+            answer_repository: Annotated[AnswerRepository, Depends()],
+            user_service: Annotated[UserService, Depends()]
     ) -> None:
         self.comment_repository = comment_repository
         self.question_repository = question_repository
         self.answer_repository = answer_repository
+        self.user_service = user_service
 
     async def create_comment(
             self,
@@ -57,7 +60,8 @@ class CommentService:
         comment = await self.comment_repository.get_entity_if_exists(
             comment_id
         )
-        if comment.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(user_id)
+        if comment.user_id != user_id and 'update_any_comment' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to update this comment'
@@ -73,7 +77,8 @@ class CommentService:
         comment = await self.comment_repository.get_entity_if_exists(
             comment_id
         )
-        if comment.user_id != user_id:
+        user_permissions = await self.user_service.get_user_permissions(user_id)
+        if comment.user_id != user_id and 'delete_any_comment' not in user_permissions:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to delete this comment'

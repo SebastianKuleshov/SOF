@@ -17,7 +17,7 @@ from app.dependencies import get_settings, oauth2_scheme, verify_password, \
     get_password_hash
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
-from app.users.schemas import UserOutSchema
+from app.users.schemas import UserOutSchema, UserInRequestSchema
 from app.users.services import UserService
 
 
@@ -103,12 +103,20 @@ class AuthService:
         except jwt.PyJWTError:
             raise credentials_exception
 
-        user = await user_repository.get_by_id(user_id)
+        user = await user_repository.get_by_id_with_roles(user_id)
         if user is None:
             raise credentials_exception
+        user_permissions = await user_repository.get_user_permissions(user_id)
 
         request.state.user_id = user_id
-        return user
+        user_schema = UserInRequestSchema.model_validate(
+            {
+                **user.__dict__,
+                'permissions': user_permissions
+            }
+        )
+        request.state.user = user_schema
+        return UserOutSchema.model_validate(user)
 
     @classmethod
     async def get_user_id_from_reset_password_jwt(
@@ -287,3 +295,23 @@ class AuthService:
         )
 
         return True
+
+    @staticmethod
+    def require_permissions(
+            required_permissions: set[str]
+    ) -> callable:
+        def check_permissions(
+                request: Request
+        ) -> bool:
+            user = request.state.user
+
+            user_permissions = user.permissions
+
+            if not required_permissions.issubset(user_permissions):
+                raise HTTPException(
+                    status_code=403,
+                    detail='Permission denied'
+                )
+            return True
+
+        return check_permissions

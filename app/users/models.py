@@ -1,8 +1,25 @@
+from sqlalchemy import Table, Column, ForeignKey, text, join
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 
 from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
 from app.core.adapters.postgres.postgres_adapter import Base
+from app.roles.models import RoleModel
+
+role_user = Table(
+    'role_user',
+    Base.metadata,
+    Column(
+        'role_id',
+        ForeignKey('roles.id', ondelete='CASCADE'),
+        primary_key=True
+    ),
+    Column(
+        'user_id',
+        ForeignKey('users.id', ondelete='CASCADE'),
+        primary_key=True
+    )
+)
 
 
 class UserModel(CreatedAtUpdatedAtMixin, Base):
@@ -41,4 +58,19 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         back_populates='user',
         lazy='noload',
         cascade='all, delete'
+    )
+
+    roles: Mapped[list[RoleModel]] = relationship(
+        'RoleModel',
+        secondary='role_user',
+        back_populates='users',
+        lazy='noload'
+    )
+
+    permissions: Mapped[list['PermissionModel']] = relationship(
+        'PermissionModel',
+        secondary='''join(role_user, permission_role,
+        role_user.c.role_id == permission_role.c.role_id)''',
+        viewonly=True,
+        lazy='noload'
     )
