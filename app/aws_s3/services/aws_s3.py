@@ -77,9 +77,6 @@ class S3Service:
             )
         )
 
-        print(s3_file.name)
-        print(file.filename)
-
         if s3_file.name != file.filename:
             await self.delete_file(s3_file)
         return object_name

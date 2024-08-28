@@ -11,7 +11,7 @@ router = APIRouter(
     tags=['roles'],
     dependencies=[
         Depends(AuthService.get_user_from_jwt),
-        Depends(AuthService.PermissionChecker(['create_role', 'attach_role']))
+        Depends(AuthService.require_permissions({'create_role', 'attach_role'}))
     ]
 )
 

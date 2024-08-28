@@ -13,8 +13,8 @@ router = APIRouter(
     dependencies=[
         Depends(AuthService.get_user_from_jwt),
         Depends(
-            AuthService.PermissionChecker(
-                ['create_permission', 'attach_permission']
+            AuthService.require_permissions(
+                {'create_permission', 'attach_permission'}
             )
         )
     ]

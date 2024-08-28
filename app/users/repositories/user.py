@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import select, Select
+from sqlalchemy import select, Select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -34,11 +34,24 @@ class UserRepository(BaseRepository):
             select(self.model)
             .options(
                 joinedload(self.model.roles)
-                .joinedload(RoleModel.permissions)
+                .joinedload(RoleModel.permissions),
             )
             .where(user_id == self.model.id)
         )
         return await self.session.scalar(stmt)
+
+    async def get_user_permissions(
+            self,
+            user_id: int
+    ) -> set[str]:
+        stmt = text(
+            '''SELECT permissions_1.name
+            FROM users LEFT OUTER JOIN (role_user AS role_user_1 JOIN permission_role AS permission_role_1 ON role_user_1.role_id = permission_role_1.role_id JOIN permissions AS permissions_1 ON permissions_1.id = permission_role_1.permission_id) ON users.id = role_user_1.user_id
+            WHERE users.id = :user_id;
+            '''
+        )
+        result = await self.session.scalars(stmt, {'user_id': user_id})
+        return set(result.all())
 
     async def attach_roles_to_user(
             self,

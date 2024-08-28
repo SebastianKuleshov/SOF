@@ -67,6 +67,14 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload'
     )
 
+    permissions: Mapped[list['PermissionModel']] = relationship(
+        'PermissionModel',
+        secondary='''join(role_user, permission_role,
+        role_user.c.role_id == permission_role.c.role_id)''',
+        viewonly=True,
+        lazy='noload'
+    )
+
     s3_files: Mapped[list['S3FileModel']] = relationship(
         'S3FileModel',
         back_populates='user',
