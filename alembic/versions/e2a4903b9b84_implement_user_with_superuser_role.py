@@ -34,27 +34,13 @@ def upgrade() -> None:
             "SUPERUSER_EMAIL or SUPERUSER_PASSWORD environment variables are not set."
         )
 
-    users_table = sa.table(
-        'users',
-        sa.column('id', sa.Integer),
-        sa.column('email', sa.String),
-        sa.column('password', sa.String),
-        sa.column('nick_name', sa.String),
-        sa.column('reputation', sa.Integer),
-        sa.column('updated_at', sa.DateTime)
+    metadata_obj = sa.MetaData()
+    metadata_obj.reflect(
+        bind=op.get_bind(), only=('users', 'role_user', 'roles')
     )
-
-    role_user_table = sa.table(
-        'role_user',
-        sa.column('role_id', sa.Integer),
-        sa.column('user_id', sa.Integer)
-    )
-
-    roles_table = sa.table(
-        'roles',
-        sa.column('id', sa.Integer),
-        sa.column('name', sa.String)
-    )
+    users_table = sa.Table('users', metadata_obj)
+    role_user_table = sa.Table('role_user', metadata_obj)
+    roles_table = sa.Table('roles', metadata_obj)
 
     connection = op.get_bind()
 
@@ -97,17 +83,12 @@ def downgrade() -> None:
             "SUPERUSER_EMAIL environment variable is not set."
         )
 
-    users_table = sa.table(
-        'users',
-        sa.column('id', sa.Integer),
-        sa.column('email', sa.String)
+    metadata_obj = sa.MetaData()
+    metadata_obj.reflect(
+        bind=op.get_bind(), only=('users', 'role_user')
     )
-
-    role_user_table = sa.table(
-        'role_user',
-        sa.column('role_id', sa.Integer),
-        sa.column('user_id', sa.Integer)
-    )
+    users_table = sa.Table('users', metadata_obj)
+    role_user_table = sa.Table('role_user', metadata_obj)
 
     # Fetch the user ID of the superuser
     connection = op.get_bind()

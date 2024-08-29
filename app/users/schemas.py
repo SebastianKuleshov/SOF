@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
-from app.common.schemas_mixins import PasswordCreationMixin
+from app.common.schemas_mixins import CreatedAtUpdatedAtMixin, \
+    PasswordCreationMixin
 
 
 class UserBaseSchema(BaseModel):
@@ -17,8 +17,14 @@ class UserCreateSchema(PasswordCreationMixin, UserBaseSchema):
 class UserCreatePayloadSchema(UserCreateSchema):
     id: str
 
+
 class UserLoginSchema(BaseModel):
     password: str
+
+
+class UserInRequestSchema(UserBaseSchema):
+    nick_name: str
+    permissions: set[str]
 
 
 class UserUpdateSchema(UserBaseSchema):
@@ -28,7 +34,7 @@ class UserUpdateSchema(UserBaseSchema):
 
 
 class UserUpdatePayloadSchema(UserUpdateSchema):
-    s3_files: list[str] | None = None
+    avatar_file_storage_id: int | None = None
 
 
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):

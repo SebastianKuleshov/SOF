@@ -31,7 +31,6 @@ def upgrade() -> None:
     op.drop_constraint(
         'role_user_user_id_fkey', 'role_user', type_='foreignkey'
         )
-    op.drop_constraint('s3_files_user_id_fkey', 's3_files', type_='foreignkey')
     op.drop_constraint('votes_user_id_fkey', 'votes', type_='foreignkey')
 
     # Alter column types
@@ -55,12 +54,6 @@ def upgrade() -> None:
         )
     op.alter_column(
         'role_user', 'user_id',
-        existing_type=sa.INTEGER(),
-        type_=sa.String(),
-        existing_nullable=False
-        )
-    op.alter_column(
-        's3_files', 'user_id',
         existing_type=sa.INTEGER(),
         type_=sa.String(),
         existing_nullable=False
@@ -93,9 +86,6 @@ def upgrade() -> None:
         'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id']
         )
     op.create_foreign_key(
-        's3_files_user_id_fkey', 's3_files', 'users', ['user_id'], ['id']
-        )
-    op.create_foreign_key(
         'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id']
         )
 
@@ -114,7 +104,6 @@ def downgrade() -> None:
     op.drop_constraint(
         'role_user_user_id_fkey', 'role_user', type_='foreignkey'
         )
-    op.drop_constraint('s3_files_user_id_fkey', 's3_files', type_='foreignkey')
     op.drop_constraint('votes_user_id_fkey', 'votes', type_='foreignkey')
 
     # Revert column types with explicit casting
@@ -132,13 +121,6 @@ def downgrade() -> None:
         existing_nullable=False,
         existing_server_default=sa.text("nextval('users_id_seq'::regclass)"),
         postgresql_using='id::integer'
-        )
-    op.alter_column(
-        's3_files', 'user_id',
-        existing_type=sa.String(),
-        type_=sa.INTEGER(),
-        existing_nullable=False,
-        postgresql_using='user_id::integer'
         )
     op.alter_column(
         'role_user', 'user_id',
@@ -181,9 +163,6 @@ def downgrade() -> None:
         )
     op.create_foreign_key(
         'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id']
-        )
-    op.create_foreign_key(
-        's3_files_user_id_fkey', 's3_files', 'users', ['user_id'], ['id']
         )
     op.create_foreign_key(
         'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id']

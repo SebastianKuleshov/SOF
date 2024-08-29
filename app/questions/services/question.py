@@ -3,8 +3,10 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
-from app.aws_s3.services import S3Service
 from app.common.services import SearchService
+from app.common.services.storage import StorageItemService
+from app.core.config import Settings
+from app.dependencies import get_settings
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
     QuestionWithJoinsOutSchema, QuestionForListOutSchema, \
@@ -24,7 +26,7 @@ class QuestionService:
             tag_repository: Annotated[TagRepository, Depends()],
             search_service: Annotated[SearchService, Depends()],
             user_service: Annotated[UserService, Depends()],
-            s3_service: Annotated[S3Service, Depends()]
+            storage_item_service: Annotated[StorageItemService, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
@@ -32,7 +34,7 @@ class QuestionService:
         self.tag_repository = tag_repository
         self.search_service = search_service
         self.user_service = user_service
-        self.s3_service = s3_service
+        self.storage_item_service = storage_item_service
 
     async def create_question(
             self,
@@ -59,7 +61,7 @@ class QuestionService:
     async def get_question(
             self,
             question_id: int,
-            user_id: int | None = None
+            user_id: int | None = None,
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_by_id_with_joins(
             question_id
@@ -77,9 +79,12 @@ class QuestionService:
                 } for answer in question.answers
             ]
 
+        settings = get_settings()
+
         user_model = question.user
-        avatar_url = await self.s3_service.generate_avatar_presigned_url(
-            user_model.id
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            user_model.avatar_file_storage_id
         )
         user_schema = {
             **user_model.__dict__,
@@ -105,6 +110,9 @@ class QuestionService:
             skip,
             limit
         )
+
+        settings = get_settings()
+
         return [
             QuestionForListOutSchema.model_validate(
                 {
@@ -112,8 +120,9 @@ class QuestionService:
                     'user': {
                         **question.user.__dict__,
                         'avatar_url': await
-                        self.s3_service.generate_avatar_presigned_url(
-                            question.user.id
+                        self.storage_item_service.generate_presigned_url(
+                            settings.AWS_BUCKET_NAME,
+                            question.user.avatar_file_storage_id
                         )
                     }
 
