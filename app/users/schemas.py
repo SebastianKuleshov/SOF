@@ -27,7 +27,7 @@ class UserUpdateSchema(UserBaseSchema):
 
 
 class UserUpdatePayloadSchema(UserUpdateSchema):
-    s3_files: list[str] | None = None
+    avatar_file_storage_id: int | None = None
 
 
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):

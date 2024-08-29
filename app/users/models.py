@@ -31,6 +31,13 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     password: Mapped[str] = mapped_column(nullable=False)
     biography: Mapped[str] = mapped_column(nullable=True)
     reputation: Mapped[int] = mapped_column(default=0)
+    avatar_file_storage_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            'storage_items.id',
+            ondelete='SET NULL'
+        ),
+        nullable=True
+    )
 
     questions: Mapped[list['QuestionModel']] = relationship(
         'QuestionModel',
@@ -75,9 +82,8 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
         lazy='noload'
     )
 
-    s3_files: Mapped[list['S3FileModel']] = relationship(
-        'S3FileModel',
+    avatar_file_storage: Mapped['StorageItemModel'] = relationship(
+        'StorageItemModel',
         back_populates='user',
-        lazy='noload',
-        cascade='all, delete'
+        lazy='noload'
     )

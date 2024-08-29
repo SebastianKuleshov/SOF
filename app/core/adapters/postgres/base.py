@@ -7,3 +7,4 @@ from app.votes.models import *
 from app.roles.models import *
 from app.permissions.models import *
 from app.aws_s3.models import *
+from app.common.models import *

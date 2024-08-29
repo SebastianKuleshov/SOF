@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 
-from app.aws_s3.services import S3Service
-from app.dependencies import get_password_hash
+from app.common.services.storage import StorageItemService
+from app.dependencies import get_password_hash, get_settings
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreateSchema, UserOutSchema, \
-    UserUpdateSchema
+    UserUpdateSchema, UserUpdatePayloadSchema
 
 
 class UserService:
@@ -17,11 +17,11 @@ class UserService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             role_repository: Annotated[RoleRepository, Depends()],
-            s3_service: Annotated[S3Service, Depends()]
+            storage_item_service: Annotated[StorageItemService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
-        self.s3_service = s3_service
+        self.storage_item_service = storage_item_service
 
     async def create_user(
             self,
@@ -50,8 +50,12 @@ class UserService:
             user_id: int
     ) -> UserOutSchema:
         user_model = await self.user_repository.get_by_id(user_id)
-        avatar_url = await self.s3_service.generate_avatar_presigned_url(
-            user_id
+
+        settings = get_settings()
+
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            user_model.avatar_file_storage_id
         )
 
         return UserOutSchema.model_validate(
@@ -67,12 +71,16 @@ class UserService:
             limit: int
     ) -> list[UserOutSchema]:
         users = await self.user_repository.get_multi(skip, limit)
+
+        settings = get_settings()
+
         return [
             UserOutSchema.model_validate(
                 {
                     **user.__dict__,
-                    'avatar_url': await self.s3_service.generate_avatar_presigned_url(
-                        user.id
+                    'avatar_url': await self.storage_item_service.generate_presigned_url(
+                        settings.AWS_BUCKET_NAME,
+                        user.avatar_file_storage_id
                     )
                 }
             ) for user in users
@@ -94,10 +102,23 @@ class UserService:
                 detail='You are not allowed to update this user'
             )
 
+        settings = get_settings()
+
         if file:
-            await self.s3_service.upload_user_avatar(
-                user_model,
+            item_id = await self.storage_item_service.upload_file(
+                settings.AWS_BUCKET_NAME,
+                f'avatars/{target_user_id}',
                 file
+            )
+
+            await self.storage_item_service.delete_file(
+                settings.AWS_BUCKET_NAME,
+                user_model.avatar_file_storage_id
+            )
+
+            user_schema = UserUpdatePayloadSchema(
+                **user_schema.model_dump(exclude_unset=True),
+                avatar_file_storage_id=item_id
             )
 
         try:
@@ -111,8 +132,9 @@ class UserService:
                 detail=f'Email already exists {e}'
             )
 
-        avatar_url = await self.s3_service.generate_avatar_presigned_url(
-            user_model.id
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            user_model.avatar_file_storage_id
         )
 
         return UserOutSchema.model_validate(
