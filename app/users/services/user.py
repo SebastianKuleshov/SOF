@@ -116,6 +116,10 @@ class UserService:
                 user_model.avatar_file_storage_id
             )
 
+            await self.storage_item_service.storage_item_repository.delete(
+                user_model.avatar_file_storage_id
+            )
+
             user_schema = UserUpdatePayloadSchema(
                 **user_schema.model_dump(exclude_unset=True),
                 avatar_file_storage_id=item_id
