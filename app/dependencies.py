@@ -33,18 +33,18 @@ settings = get_settings()
 
 keycloak_openid_connection = KeycloakOpenIDConnection(
     server_url=settings.KEYCLOAK_SERVER_URL,
-    realm_name='SOF',
-    user_realm_name='master',
+    realm_name=settings.KEYCLOAK_REALM,
+    user_realm_name=settings.KEYCLOAK_MASTER_REALM,
     client_id=settings.KEYCLOAK_ADMIN_CLIENT_ID,
     client_secret_key=settings.KEYCLOAK_ADMIN_CLIENT_SECRET,
-    username='root',
-    password='string3!G',
+    username=settings.SUPERUSER_USERNAME,
+    password=settings.SUPERUSER_PASSWORD,
     verify=True
 )
 
 keycloak_openid = KeycloakOpenID(
     server_url=settings.KEYCLOAK_SERVER_URL,
-    realm_name='SOF',
+    realm_name=settings.KEYCLOAK_REALM,
     client_id=settings.KEYCLOAK_CLIENT_ID,
     client_secret_key=settings.KEYCLOAK_CLIENT_SECRET,
     verify=True
@@ -53,5 +53,3 @@ keycloak_openid = KeycloakOpenID(
 keycloak_admin = KeycloakAdmin(
     connection=keycloak_openid_connection
 )
-
-

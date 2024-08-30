@@ -1,16 +1,15 @@
 from typing import Annotated
 
-from app.common.services.storage import StorageItemService
 from fastapi import Depends, HTTPException, UploadFile
-from keycloak import KeycloakPostError
-from sqlalchemy.exc import IntegrityError
+from keycloak import KeycloakPostError, KeycloakError
 
-from app.dependencies import get_settings
+from app.common.services.storage import StorageItemService
+from app.dependencies import get_settings, keycloak_admin
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreateSchema, UserOutSchema, \
-    UserUpdateSchema, UserUpdatePayloadSchema
+    UserUpdateSchema, UserUpdatePayloadSchema, UserCreatePayloadSchema
 
 
 class UserService:
@@ -68,18 +67,17 @@ class UserService:
 
         user_model = await self.user_repository.create(user)
 
-        #
-        # roles = await self.role_repository.get_roles_by_name(['user'])
-        # await self.user_repository.attach_roles_to_user(
-        #     user_model.id,
-        #     roles
-        # )
-        #
+        roles = await self.role_repository.get_roles_by_name(['user'])
+        await self.user_repository.attach_roles_to_user(
+            user_model.id,
+            roles
+        )
+
         return UserOutSchema.model_validate(user_model)
 
     async def get_user(
             self,
-            user_id: int
+            user_id: str
     ) -> UserOutSchema:
         user_model = await self.user_repository.get_by_id(user_id)
 
@@ -120,8 +118,8 @@ class UserService:
 
     async def update_user(
             self,
-            target_user_id: int,
-            requesting_user_id: int,
+            target_user_id: str,
+            requesting_user_id: str,
             user_schema: UserUpdateSchema,
             file: UploadFile
     ) -> UserOutSchema:
@@ -135,6 +133,20 @@ class UserService:
             )
 
         settings = get_settings()
+
+        if user_schema.email is not None:
+            try:
+                await keycloak_admin.a_update_user(
+                    target_user_id,
+                    {
+                        'email': user_schema.email
+                    }
+                )
+            except KeycloakError:
+                raise HTTPException(
+                    status_code=400,
+                    detail='Email already exists'
+                )
 
         if file:
             item_id = await self.storage_item_service.upload_file(
@@ -157,16 +169,10 @@ class UserService:
                 avatar_file_storage_id=item_id
             )
 
-        try:
-            await self.user_repository.update(
-                target_user_id,
-                user_schema
-            )
-        except IntegrityError as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f'Email already exists {e}'
-            )
+        await self.user_repository.update(
+            target_user_id,
+            user_schema
+        )
 
         avatar_url = await self.storage_item_service.generate_presigned_url(
             settings.AWS_BUCKET_NAME,
@@ -182,8 +188,8 @@ class UserService:
 
     async def delete_user(
             self,
-            target_user_id: int,
-            requesting_user_id: int
+            target_user_id: str,
+            requesting_user_id: str
     ) -> bool:
         user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
@@ -195,7 +201,7 @@ class UserService:
 
     async def __check_if_roles_already_attached(
             self,
-            user_id: int,
+            user_id: str,
             roles: list[RoleModel]
     ) -> bool:
         user = await self.user_repository.get_by_id_with_roles(user_id)
@@ -208,8 +214,8 @@ class UserService:
 
     async def ban_user(
             self,
-            requesting_user_id: int,
-            target_user_id: int
+            requesting_user_id: str,
+            target_user_id: str
     ) -> bool:
         await self.user_repository.get_entity_if_exists(
             target_user_id
@@ -235,7 +241,7 @@ class UserService:
 
     async def unban_user(
             self,
-            target_user_id: int
+            target_user_id: str
     ) -> bool:
         await self.user_repository.get_entity_if_exists(
             target_user_id
@@ -251,7 +257,7 @@ class UserService:
 
     async def get_user_permissions(
             self,
-            user_id: int
+            user_id: str
     ) -> set[str]:
         user = await self.user_repository.get_by_id_with_joins(user_id)
         user_permissions = {
@@ -263,7 +269,7 @@ class UserService:
 
     async def check_and_update_user_role(
             self,
-            user_id: int,
+            user_id: str,
             increase: bool
     ) -> bool:
         roles = await self.role_repository.get_roles_by_name(

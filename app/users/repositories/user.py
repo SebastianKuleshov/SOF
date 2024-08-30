@@ -18,7 +18,7 @@ class UserRepository(BaseRepository):
 
     async def update_reputation(
             self,
-            user_id: int,
+            user_id: str,
             is_upvote: bool
     ) -> int:
         user = await self.get_by_id(user_id)
@@ -28,7 +28,7 @@ class UserRepository(BaseRepository):
 
     async def get_by_id_with_roles(
             self,
-            user_id: int
+            user_id: str
     ) -> UserModel:
         stmt = (
             select(self.model)
@@ -42,7 +42,7 @@ class UserRepository(BaseRepository):
 
     async def get_user_permissions(
             self,
-            user_id: int
+            user_id: str
     ) -> set[str]:
         stmt = text(
             '''SELECT permissions_1.name
@@ -55,7 +55,7 @@ class UserRepository(BaseRepository):
 
     async def attach_roles_to_user(
             self,
-            user_id: int,
+            user_id: str,
             roles: list[RoleModel]
     ) -> bool:
         user = await self.get_by_id_with_roles(user_id)
@@ -72,7 +72,7 @@ class UserRepository(BaseRepository):
 
     async def detach_roles_from_user(
             self,
-            user_id: int,
+            user_id: str,
             roles: list[RoleModel]
     ) -> bool:
         user = await self.get_by_id_with_roles(user_id)

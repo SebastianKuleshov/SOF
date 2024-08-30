@@ -13,36 +13,27 @@ class AuthRepository:
     ) -> None:
         self.redis = redis
 
-    async def create_tokens(
+    async def create_token(
             self,
-            user_id: int,
-            refresh_token: str,
-            access_token: str
+            user_id: str,
+            token: str
     ) -> bool:
         key = str(user_id)
-        await self.redis.rpush(key, refresh_token, access_token)
+        await self.redis.rpush(key, token)
         return True
 
     async def check_token(
             self,
-            user_id: int,
+            user_id: str,
             token: str
     ) -> bool:
         key = str(user_id)
         tokens = await self.redis.lrange(key, 0, -1)
         return token.encode() in tokens
 
-    async def delete_user_token(
-            self,
-            user_id: int,
-            token: str
-    ) -> bool:
-        key = str(user_id)
-        return await self.redis.lrem(key, 0, token.encode())
-
     async def delete_user_tokens(
             self,
-            user_id: int
+            user_id: str
     ) -> bool:
         key = str(user_id)
         return await self.redis.delete(key)

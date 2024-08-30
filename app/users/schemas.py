@@ -18,18 +18,12 @@ class UserCreatePayloadSchema(UserCreateSchema):
     id: str
 
 
-class UserLoginSchema(BaseModel):
-    password: str
-
-
 class UserInRequestSchema(UserBaseSchema):
     nick_name: str
     permissions: set[str]
 
 
 class UserUpdateSchema(UserBaseSchema):
-    nick_name: str | None = None
-    email: EmailStr | None = None
     biography: str | None = None
 
 

@@ -44,7 +44,7 @@ class VoteService:
             self,
             vote_schema: VoteCreateSchema,
             entity_type: str,
-            user_id: int,
+            user_id: str,
             is_upvote: bool
     ) -> VoteOutSchema:
         repository = await self.__get_entity_repository(entity_type)
@@ -102,7 +102,7 @@ class VoteService:
             self,
             entity_type: str,
             entity_id: int,
-            user_id: int,
+            user_id: str,
             is_upvote: bool
     ) -> bool:
         repository = await self.__get_entity_repository(entity_type)

@@ -26,7 +26,7 @@ class CommentService:
     async def create_comment(
             self,
             comment_schema: CommentCreateSchema,
-            user_id: int
+            user_id: str
     ) -> CommentOutSchema:
         comment_schema = CommentCreatePayloadSchema(
             **comment_schema.model_dump(),
@@ -54,7 +54,7 @@ class CommentService:
     async def update_comment(
             self,
             comment_id: int,
-            user_id: int,
+            user_id: str,
             comment_schema: CommentUpdateSchema
     ) -> CommentOutSchema:
         comment = await self.comment_repository.get_entity_if_exists(
@@ -72,7 +72,7 @@ class CommentService:
     async def delete_comment(
             self,
             comment_id: int,
-            user_id: int
+            user_id: str
     ) -> bool:
         comment = await self.comment_repository.get_entity_if_exists(
             comment_id

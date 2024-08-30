@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Security
+from fastapi import APIRouter, Depends, Security
 from fastapi.security import OAuth2PasswordRequestForm, \
     HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth import schemas
 from app.auth.services import AuthService
-from app.common.schemas_mixins import PasswordCreationMixin
 
 router = APIRouter(
     prefix='/auth',
@@ -60,17 +59,3 @@ async def forgot_password(
         email_schema: schemas.EmailCreateSchema
 ) -> bool:
     return await auth_service.forgot_password(email_schema)
-
-
-@router.post(
-    '/reset-password',
-)
-async def reset_password(
-        auth_service: Annotated[AuthService, Depends()],
-        new_password_data: PasswordCreationMixin,
-        user_id: int = Depends(AuthService.get_user_id_from_reset_password_jwt)
-) -> bool:
-    return await auth_service.reset_password(
-        user_id,
-        new_password_data
-    )

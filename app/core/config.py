@@ -5,16 +5,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
     CORS_ALLOW_ORIGINS: str
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
-    REFRESH_TOKEN_EXPIRE_DAYS: int
-    VERIFICATION_TOKEN_EXPIRE_MINUTES: int
-    EMAIL_SMTP_HOST: str
-    EMAIL_SMTP_PORT: int
-    EMAIL_SMTP_TLS: bool
-    EMAIL_SMTP_USERNAME: str
-    EMAIL_SMTP_PASSWORD: str
     BASE_URL: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
@@ -28,7 +18,9 @@ class Settings(BaseSettings):
     KEYCLOAK_ADMIN_CLIENT_ID: str
     KEYCLOAK_ADMIN_CLIENT_SECRET: str
     KEYCLOAK_REALM: str
-    KEYCLOAK_CALLBACK_URI: str
+    KEYCLOAK_MASTER_REALM: str
+    SUPERUSER_USERNAME: str
+    SUPERUSER_PASSWORD: str
 
     class Config:
         env_file = './app/.env'

@@ -50,7 +50,7 @@ async def get_users(
 )
 async def get_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: int
+        user_id: str
 ):
     return await user_service.get_user(user_id)
 
@@ -78,7 +78,7 @@ async def update_user(
             AuthService.get_user_id_from_request, Depends()
         ],
         user_schema: Json[user_schemas.UserUpdateSchema],
-        user_id: int,
+        user_id: str,
         avatar_file: UploadFile | str = None
 ):
     return await user_service.update_user(
@@ -97,7 +97,7 @@ async def delete_current_user(
         requesting_user_id: Annotated[
             AuthService.get_user_id_from_request, Depends()
         ],
-        user_id: int
+        user_id: str
 ) -> bool:
     return await user_service.delete_user(
         user_id,
@@ -114,7 +114,7 @@ async def ban_user(
         requesting_user_id: Annotated[
             AuthService.get_user_id_from_request, Depends()
         ],
-        target_user_id: int
+        target_user_id: str
 ) -> bool:
     return await user_service.ban_user(
         requesting_user_id,
@@ -128,7 +128,7 @@ async def ban_user(
 )
 async def unban_user(
         user_service: Annotated[UserService, Depends()],
-        target_user_id: int
+        target_user_id: str
 ) -> bool:
     return await user_service.unban_user(
         target_user_id

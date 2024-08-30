@@ -74,19 +74,19 @@ def upgrade() -> None:
 
     # Recreate foreign key constraints
     op.create_foreign_key(
-        'answers_user_id_fkey', 'answers', 'users', ['user_id'], ['id']
+        'answers_user_id_fkey', 'answers', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'comments_user_id_fkey', 'comments', 'users', ['user_id'], ['id']
+        'comments_user_id_fkey', 'comments', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'questions_user_id_fkey', 'questions', 'users', ['user_id'], ['id']
+        'questions_user_id_fkey', 'questions', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id']
+        'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id']
+        'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
 
     # ### end Alembic commands ###
@@ -153,19 +153,19 @@ def downgrade() -> None:
 
     # Recreate foreign key constraints
     op.create_foreign_key(
-        'answers_user_id_fkey', 'answers', 'users', ['user_id'], ['id']
+        'answers_user_id_fkey', 'answers', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'comments_user_id_fkey', 'comments', 'users', ['user_id'], ['id']
+        'comments_user_id_fkey', 'comments', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'questions_user_id_fkey', 'questions', 'users', ['user_id'], ['id']
+        'questions_user_id_fkey', 'questions', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id']
+        'role_user_user_id_fkey', 'role_user', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
     op.create_foreign_key(
-        'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id']
+        'votes_user_id_fkey', 'votes', 'users', ['user_id'], ['id'], ondelete='CASCADE'
         )
 
     # ### end Alembic commands ###

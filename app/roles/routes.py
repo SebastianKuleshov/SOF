@@ -56,7 +56,7 @@ async def create_role(
 async def attach_role_to_user(
         role_service: Annotated[RoleService, Depends()],
         role_id: int,
-        user_id: int
+        user_id: str
 ) -> bool:
     return await role_service.attach_role_to_user(
         role_id,
@@ -69,7 +69,7 @@ async def attach_role_to_user(
 async def detach_role_from_user(
         role_service: Annotated[RoleService, Depends()],
         role_id: int,
-        user_id: int
+        user_id: str
 ) -> bool:
     return await role_service.detach_role_from_user(
         role_id,

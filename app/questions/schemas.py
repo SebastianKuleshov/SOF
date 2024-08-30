@@ -18,7 +18,7 @@ class QuestionBaseSchema(BaseModel):
 
 
 class QuestionCreateSchema(QuestionBaseSchema):
-    user_id: int
+    user_id: str
 
 
 class QuestionCreatePayloadSchema(QuestionBaseSchema):
@@ -37,7 +37,7 @@ class QuestionUpdatePayloadSchema(QuestionUpdateSchema):
 
 class QuestionOutSchema(QuestionBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
-    user_id: int
+    user_id: str
     accepted_answer_id: int | None
     votes: list[VoteOutSchema] | None = Field(None, exclude=True)
 
@@ -78,7 +78,7 @@ class QuestionForListOutSchema(QuestionOutSchema):
 class QuestionWithJoinsOutSchema(QuestionForListOutSchema):
     answers: list[AnswerWithCommentsOutSchema]
     comments: list[CommentOutSchema]
-    current_user_id: int | None = Field(None, exclude=True)
+    current_user_id: str | None = Field(None, exclude=True)
 
     # Checks if the current user has voted on the question.
     # If the user has voted, it returns the VoteOutSchema.

@@ -25,13 +25,13 @@ class VoteCreateSchema(VoteBaseSchema):
 
 
 class VoteCreatePayloadSchema(VoteCreateSchema):
-    user_id: int
+    user_id: str
     is_upvote: bool
 
 
 class VoteOutSchema(VoteBaseSchema):
     id: int
-    user_id: int
+    user_id: str
     question_id: int | None
     answer_id: int | None
     is_upvote: bool
