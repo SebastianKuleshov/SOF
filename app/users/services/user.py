@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 
+from app.common.repositories.storage import StorageItemRepository
 from app.common.schemas import StorageItemCreateSchema
 from app.common.services.storage import StorageItemService
 from app.dependencies import get_password_hash, get_settings
@@ -18,11 +19,13 @@ class UserService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             role_repository: Annotated[RoleRepository, Depends()],
-            storage_item_service: Annotated[StorageItemService, Depends()]
+            storage_item_service: Annotated[StorageItemService, Depends()],
+            storage_item_repository: Annotated[StorageItemRepository, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
+        self.storage_item_repository = storage_item_repository
 
     async def create_user(
             self,
@@ -54,7 +57,7 @@ class UserService:
 
         settings = get_settings()
 
-        item_model = await self.storage_item_service.storage_item_repository.get_by_id(
+        item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id
         )
 
@@ -82,7 +85,7 @@ class UserService:
         users_with_avatar_url = []
 
         for user in users:
-            item_model = await self.storage_item_service.storage_item_repository.get_by_id(
+            item_model = await self.storage_item_repository.get_by_id(
                 user.avatar_file_storage_id
             )
             avatar_url = await self.storage_item_service.generate_presigned_url(
@@ -130,7 +133,7 @@ class UserService:
             stored_file_name = stored_file_path.split('/')[-1]
 
             new_item_model = await (
-                self.storage_item_service.storage_item_repository.create(
+                self.storage_item_repository.create(
                     StorageItemCreateSchema(
                         original_file_name=file.filename,
                         stored_file_name=stored_file_name,
@@ -140,7 +143,7 @@ class UserService:
 
             if user_model.avatar_file_storage_id:
                 old_item_model = await (
-                    self.storage_item_service.storage_item_repository.get_by_id(
+                    self.storage_item_repository.get_by_id(
                         user_model.avatar_file_storage_id
                     )
                 )
@@ -150,7 +153,7 @@ class UserService:
                     old_item_model.storage_path
                 )
 
-                await self.storage_item_service.storage_item_repository.delete(
+                await self.storage_item_repository.delete(
                     user_model.avatar_file_storage_id
                 )
 
@@ -170,7 +173,7 @@ class UserService:
                 detail='Email already exists'
             )
 
-        item_model = await self.storage_item_service.storage_item_repository.get_by_id(
+        item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id
         )
         avatar_url = await self.storage_item_service.generate_presigned_url(

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
+from app.common.repositories.storage import StorageItemRepository
 from app.common.services import SearchService
 from app.common.services.storage import StorageItemService
 from app.dependencies import get_settings
@@ -25,7 +26,8 @@ class QuestionService:
             tag_repository: Annotated[TagRepository, Depends()],
             search_service: Annotated[SearchService, Depends()],
             user_service: Annotated[UserService, Depends()],
-            storage_item_service: Annotated[StorageItemService, Depends()]
+            storage_item_service: Annotated[StorageItemService, Depends()],
+            storage_item_repository: Annotated[StorageItemRepository, Depends()]
     ) -> None:
         self.question_repository = question_repository
         self.user_repository = user_repository
@@ -34,6 +36,7 @@ class QuestionService:
         self.search_service = search_service
         self.user_service = user_service
         self.storage_item_service = storage_item_service
+        self.storage_item_repository = storage_item_repository
 
     async def create_question(
             self,
@@ -82,7 +85,7 @@ class QuestionService:
 
         user_model = question.user
 
-        item_model = await self.storage_item_service.storage_item_repository.get_by_id(
+        item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id
         )
         avatar_url = await self.storage_item_service.generate_presigned_url(
@@ -120,7 +123,7 @@ class QuestionService:
         questions_with_user_avatar_url = []
 
         for question in questions:
-            item_model = await self.storage_item_service.storage_item_repository.get_by_id(
+            item_model = await self.storage_item_repository.get_by_id(
                 question.user.avatar_file_storage_id
             )
             avatar_url = await self.storage_item_service.generate_presigned_url(

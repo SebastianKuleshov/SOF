@@ -1,23 +1,13 @@
 import uuid
-from typing import Annotated
 
 from boto3.exceptions import Boto3Error
-from fastapi import Depends, UploadFile, HTTPException
+from fastapi import UploadFile, HTTPException
 
-from app.common.repositories.storage import StorageItemRepository
 from app.core.adapters.aws_s3.aws_s3_adapter import s3_client
 
 
 class StorageItemService:
     s3_client = s3_client
-
-    def __init__(
-            self,
-            storage_item_repository: Annotated[
-                StorageItemRepository, Depends()
-            ]
-    ) -> None:
-        self.storage_item_repository = storage_item_repository
 
     @classmethod
     async def upload_file(
