@@ -33,7 +33,8 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     avatar_file_storage_id: Mapped[int] = mapped_column(
         ForeignKey(
             'storage_items.id',
-            ondelete='SET NULL'
+            ondelete='SET NULL',
+            name='fk_users_storage_items_id'
         ),
         nullable=True
     )
@@ -83,6 +84,5 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
 
     avatar_file_storage: Mapped['StorageItemModel'] = relationship(
         'StorageItemModel',
-        back_populates='user',
         lazy='noload'
     )

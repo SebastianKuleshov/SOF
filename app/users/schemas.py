@@ -24,6 +24,8 @@ class UserInRequestSchema(UserBaseSchema):
 
 
 class UserUpdateSchema(UserBaseSchema):
+    nick_name: str | None = None
+    email: EmailStr | None = None
     biography: str | None = None
 
 

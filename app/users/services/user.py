@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, UploadFile
 from keycloak import KeycloakPostError, KeycloakError
 
+from app.common.repositories.storage import StorageItemRepository
+from app.common.schemas import StorageItemCreateSchema
 from app.common.services.storage import StorageItemService
 from app.dependencies import get_settings, keycloak_admin
 from app.roles.models import RoleModel
@@ -17,11 +19,14 @@ class UserService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             role_repository: Annotated[RoleRepository, Depends()],
-            storage_item_service: Annotated[StorageItemService, Depends()]
+            storage_item_service: Annotated[StorageItemService, Depends()],
+            storage_item_repository: Annotated[
+                StorageItemRepository, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
+        self.storage_item_repository = storage_item_repository
 
     async def create_user(
             self,
@@ -83,10 +88,14 @@ class UserService:
 
         settings = get_settings()
 
-        avatar_url = await self.storage_item_service.generate_presigned_url(
-            settings.AWS_BUCKET_NAME,
+        item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id
         )
+
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            item_model.storage_path
+        ) if item_model else None
 
         return UserOutSchema.model_validate(
             {
@@ -104,17 +113,28 @@ class UserService:
 
         settings = get_settings()
 
-        return [
-            UserOutSchema.model_validate(
+        users_with_avatar_url = []
+
+        for user in users:
+            item_model = await self.storage_item_repository.get_by_id(
+                user.avatar_file_storage_id
+            )
+            avatar_url = await self.storage_item_service.generate_presigned_url(
+                settings.AWS_BUCKET_NAME,
+                item_model.storage_path
+            ) if item_model else None
+
+            user_with_avatar_url = UserOutSchema.model_validate(
                 {
                     **user.__dict__,
-                    'avatar_url': await self.storage_item_service.generate_presigned_url(
-                        settings.AWS_BUCKET_NAME,
-                        user.avatar_file_storage_id
-                    )
+                    'avatar_url': avatar_url
                 }
-            ) for user in users
-        ]
+            )
+            users_with_avatar_url.append(
+                user_with_avatar_url
+            )
+
+        return users_with_avatar_url
 
     async def update_user(
             self,
@@ -149,24 +169,42 @@ class UserService:
                 )
 
         if file:
-            item_id = await self.storage_item_service.upload_file(
+            stored_file_path = await self.storage_item_service.upload_file(
                 settings.AWS_BUCKET_NAME,
                 f'avatars/{target_user_id}',
                 file
             )
 
-            await self.storage_item_service.delete_file(
-                settings.AWS_BUCKET_NAME,
-                user_model.avatar_file_storage_id
-            )
+            stored_file_name = stored_file_path.split('/')[-1]
 
-            await self.storage_item_service.storage_item_repository.delete(
-                user_model.avatar_file_storage_id
-            )
+            new_item_model = await (
+                self.storage_item_repository.create(
+                    StorageItemCreateSchema(
+                        original_file_name=file.filename,
+                        stored_file_name=stored_file_name,
+                        storage_path=stored_file_path
+                    )
+                ))
+
+            if user_model.avatar_file_storage_id:
+                old_item_model = await (
+                    self.storage_item_repository.get_by_id(
+                        user_model.avatar_file_storage_id
+                    )
+                )
+
+                await self.storage_item_service.delete_file(
+                    settings.AWS_BUCKET_NAME,
+                    old_item_model.storage_path
+                )
+
+                await self.storage_item_repository.delete(
+                    user_model.avatar_file_storage_id
+                )
 
             user_schema = UserUpdatePayloadSchema(
                 **user_schema.model_dump(exclude_unset=True),
-                avatar_file_storage_id=item_id
+                avatar_file_storage_id=new_item_model.id
             )
 
         await self.user_repository.update(
@@ -174,10 +212,13 @@ class UserService:
             user_schema
         )
 
-        avatar_url = await self.storage_item_service.generate_presigned_url(
-            settings.AWS_BUCKET_NAME,
+        item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id
         )
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            item_model.storage_path
+        ) if item_model else None
 
         return UserOutSchema.model_validate(
             {
