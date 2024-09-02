@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     EMAIL_SMTP_USERNAME: str
     EMAIL_SMTP_PASSWORD: str
     BASE_URL: str
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_BUCKET_NAME: str
+    AWS_REGION: str
+    AWS_BUCKET_URL: str
+    ALLOWED_IMAGE_TYPES: list[str]
+
 
     class Config:
         env_file = './app/.env'

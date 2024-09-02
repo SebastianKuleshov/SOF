@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, UploadFile
+from pydantic import Json
 
 from app.auth.services import AuthService
 from app.users import schemas as user_schemas
@@ -40,7 +41,7 @@ async def get_users(
         skip: int = 0,
         limit: int = 100
 ):
-    return await user_service.user_repository.get_multi(skip, limit)
+    return await user_service.get_users(skip, limit)
 
 
 @public_router.get(
@@ -49,23 +50,22 @@ async def get_users(
 )
 async def get_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: int = Annotated[
-            AuthService.get_user_id_from_request, Depends()]
+        user_id: int
 ):
-    return await user_service.user_repository.get_by_id(user_id)
+    return await user_service.get_user(user_id)
 
 
 # Private routes
 
 @private_router.get(
-    '/me',
+    '/me/',
     response_model=user_schemas.UserOutSchema
 )
 async def get_current_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: Annotated[AuthService.get_user_id_from_request, Depends()],
+        user_id: Annotated[AuthService.get_user_id_from_request, Depends()]
 ):
-    return await user_service.user_repository.get_by_id(user_id)
+    return await user_service.get_user(user_id)
 
 
 @private_router.put(
@@ -74,15 +74,18 @@ async def get_current_user(
 )
 async def update_user(
         user_service: Annotated[UserService, Depends()],
-        request: Request,
+        requesting_user_id: Annotated[
+            AuthService.get_user_id_from_request, Depends()
+        ],
+        user_schema: Json[user_schemas.UserUpdateSchema],
         user_id: int,
-        user_schema: user_schemas.UserUpdateSchema
+        avatar_file: UploadFile | str = None
 ):
-    requesting_user_id = await AuthService.get_user_id_from_request(request)
     return await user_service.update_user(
         user_id,
         requesting_user_id,
-        user_schema
+        user_schema,
+        avatar_file
     )
 
 
@@ -91,10 +94,11 @@ async def update_user(
 )
 async def delete_current_user(
         user_service: Annotated[UserService, Depends()],
-        request: Request,
+        requesting_user_id: Annotated[
+            AuthService.get_user_id_from_request, Depends()
+        ],
         user_id: int
 ) -> bool:
-    requesting_user_id = await AuthService.get_user_id_from_request(request)
     return await user_service.delete_user(
         user_id,
         requesting_user_id

@@ -1,23 +1,31 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 
-from app.dependencies import get_password_hash
+from app.common.repositories.storage import StorageItemRepository
+from app.common.schemas import StorageItemCreateSchema
+from app.common.services.storage import StorageItemService
+from app.dependencies import get_password_hash, get_settings
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
-from app.users.schemas import UserCreateSchema, UserOutSchema, UserUpdateSchema
+from app.users.schemas import UserCreateSchema, UserOutSchema, \
+    UserUpdateSchema, UserUpdatePayloadSchema
 
 
 class UserService:
     def __init__(
             self,
             user_repository: Annotated[UserRepository, Depends()],
-            role_repository: Annotated[RoleRepository, Depends()]
+            role_repository: Annotated[RoleRepository, Depends()],
+            storage_item_service: Annotated[StorageItemService, Depends()],
+            storage_item_repository: Annotated[StorageItemRepository, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
+        self.storage_item_service = storage_item_service
+        self.storage_item_repository = storage_item_repository
 
     async def create_user(
             self,
@@ -41,17 +49,117 @@ class UserService:
 
         return UserOutSchema.model_validate(user_model)
 
+    async def get_user(
+            self,
+            user_id: int
+    ) -> UserOutSchema:
+        user_model = await self.user_repository.get_by_id(user_id)
+
+        settings = get_settings()
+
+        item_model = await self.storage_item_repository.get_by_id(
+            user_model.avatar_file_storage_id
+        )
+
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            item_model.storage_path
+        ) if item_model else None
+
+        return UserOutSchema.model_validate(
+            {
+                **user_model.__dict__,
+                'avatar_url': avatar_url
+            }
+        )
+
+    async def get_users(
+            self,
+            skip: int,
+            limit: int
+    ) -> list[UserOutSchema]:
+        users = await self.user_repository.get_multi(skip, limit)
+
+        settings = get_settings()
+
+        users_with_avatar_url = []
+
+        for user in users:
+            item_model = await self.storage_item_repository.get_by_id(
+                user.avatar_file_storage_id
+            )
+            avatar_url = await self.storage_item_service.generate_presigned_url(
+                settings.AWS_BUCKET_NAME,
+                item_model.storage_path
+            ) if item_model else None
+
+            user_with_avatar_url = UserOutSchema.model_validate(
+                {
+                    **user.__dict__,
+                    'avatar_url': avatar_url
+                }
+            )
+            users_with_avatar_url.append(
+                user_with_avatar_url
+            )
+
+        return users_with_avatar_url
+
     async def update_user(
             self,
             target_user_id: int,
             requesting_user_id: int,
-            user_schema: UserUpdateSchema
+            user_schema: UserUpdateSchema,
+            file: UploadFile
     ) -> UserOutSchema:
-        user = await self.user_repository.get_entity_if_exists(target_user_id)
-        if user.id != requesting_user_id:
+        user_model = await self.user_repository.get_entity_if_exists(
+            target_user_id
+        )
+        if user_model.id != requesting_user_id:
             raise HTTPException(
                 status_code=403,
                 detail='You are not allowed to update this user'
+            )
+
+        settings = get_settings()
+
+        if file:
+            stored_file_path = await self.storage_item_service.upload_file(
+                settings.AWS_BUCKET_NAME,
+                f'avatars/{target_user_id}',
+                file
+            )
+
+            stored_file_name = stored_file_path.split('/')[-1]
+
+            new_item_model = await (
+                self.storage_item_repository.create(
+                    StorageItemCreateSchema(
+                        original_file_name=file.filename,
+                        stored_file_name=stored_file_name,
+                        storage_path=stored_file_path
+                    )
+                ))
+
+            if user_model.avatar_file_storage_id:
+                old_item_model = await (
+                    self.storage_item_repository.get_by_id(
+                        user_model.avatar_file_storage_id
+                    )
+                )
+
+                await self.storage_item_service.delete_file(
+                    settings.AWS_BUCKET_NAME,
+                    old_item_model.storage_path
+                )
+
+                await self.storage_item_repository.delete(
+                    user_model.avatar_file_storage_id
+                )
+
+            user_schema = UserUpdatePayloadSchema(
+                **user_schema.model_dump(exclude_unset=True),
+                avatar_file_storage_id=new_item_model.id
             )
 
         try:
@@ -65,10 +173,20 @@ class UserService:
                 detail='Email already exists'
             )
 
-        user_model = await self.user_repository.get_by_id(
-            target_user_id
+        item_model = await self.storage_item_repository.get_by_id(
+            user_model.avatar_file_storage_id
         )
-        return UserOutSchema.model_validate(user_model)
+        avatar_url = await self.storage_item_service.generate_presigned_url(
+            settings.AWS_BUCKET_NAME,
+            item_model.storage_path
+        ) if item_model else None
+
+        return UserOutSchema.model_validate(
+            {
+                **user_model.__dict__,
+                'avatar_url': avatar_url
+            }
+        )
 
     async def delete_user(
             self,

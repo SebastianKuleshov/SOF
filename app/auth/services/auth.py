@@ -9,12 +9,13 @@ from fastapi.security import OAuth2PasswordRequestForm, \
 from pydantic import EmailStr
 
 from app.auth.repositories import AuthRepository
-from app.auth.schemas import TokenBaseSchema, EmailCreateSchema, \
+from app.auth.schemas import EmailCreateSchema, \
     EmailCreatePayloadSchema
+from app.auth.schemas import TokenBaseSchema
 from app.common.schemas_mixins import PasswordCreationMixin
 from app.common.services import EmailService
-from app.dependencies import get_settings, oauth2_scheme, verify_password, \
-    get_password_hash
+from app.dependencies import get_password_hash
+from app.dependencies import get_settings, oauth2_scheme, verify_password
 from app.users.models import UserModel
 from app.users.repositories import UserRepository
 from app.users.schemas import UserOutSchema, UserInRequestSchema
