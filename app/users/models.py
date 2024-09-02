@@ -85,6 +85,5 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
 
     avatar_file_storage: Mapped['StorageItemModel'] = relationship(
         'StorageItemModel',
-        back_populates='user',
         lazy='noload'
     )
