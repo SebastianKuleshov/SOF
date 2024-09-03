@@ -170,3 +170,6 @@ redis_data/
 keycloak/
 kc_databases/
 kc_databases1/
+redis_data3
+kc_databases3
+databases3
