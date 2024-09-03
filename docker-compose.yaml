@@ -31,7 +31,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_NAME}
     volumes:
-      - "./databases3:/var/lib/postgresql/data/"
+      - "./databases:/var/lib/postgresql/data/"
     container_name: db
     networks:
       - SOFCopy
@@ -47,7 +47,7 @@ services:
       - --loglevel warning
       - --requirepass ${REDIS_PASSWORD}
     volumes:
-      - './redis_data3:/data/'
+      - './redis_data:/data/'
     container_name: redis
     networks:
       - SOFCopy
@@ -62,7 +62,7 @@ services:
       - POSTGRES_USER=${KC_DB_USER}
       - POSTGRES_DB=${KC_DB_NAME}
     volumes:
-      - "./kc_databases3:/var/lib/postgresql/data/"
+      - "./kc_databases:/var/lib/postgresql/data/"
     container_name: kc_db
     networks:
       - SOFCopy
