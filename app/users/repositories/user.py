@@ -1,11 +1,14 @@
 from fastapi import HTTPException
-from sqlalchemy import select, Select, text
+from sqlalchemy import select, Select, text, func, case
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
+from app.answers.models import AnswerModel
 from app.common.repositories.base_repository import BaseRepository
+from app.questions.models import QuestionModel
 from app.roles.models import RoleModel
 from app.users.models import UserModel
+from app.votes.models import VotesModel
 
 
 class UserRepository(BaseRepository):
@@ -86,3 +89,63 @@ class UserRepository(BaseRepository):
                 detail='Role is not attached to the user'
             )
         return True
+
+    async def get_top_contributors(self):
+        question_votes_subquery = (
+            select(
+                VotesModel.question_id,
+                func.sum(
+                    case(
+                        (VotesModel.is_upvote == True, 1),
+                        else_=0
+                    )
+                ).label('questions_upvotes'),
+            ).group_by(VotesModel.question_id).subquery()
+        )
+
+        answers_votes_subquery = (
+            select(
+                VotesModel.answer_id,
+                func.sum(
+                    case(
+                        (VotesModel.is_upvote == True, 1),
+                        else_=0
+                    )
+                ).label('answers_upvotes'),
+            ).group_by(VotesModel.answer_id).subquery()
+        )
+
+
+
+        stmt = (
+            select(
+                self.model.id,
+                func.coalesce(
+                    question_votes_subquery.c.questions_upvotes,
+                    0
+                ).label('questions_upvotes'),
+                func.coalesce(
+                    answers_votes_subquery.c.answers_upvotes,
+                    0
+                ).label('answers_upvotes')
+            ).outerjoin(
+                QuestionModel,
+                QuestionModel.user_id == self.model.id
+            ).outerjoin(
+                AnswerModel,
+                AnswerModel.user_id == self.model.id
+            ).outerjoin(
+                question_votes_subquery,
+                question_votes_subquery.c.question_id == QuestionModel.id
+            ).outerjoin(
+                answers_votes_subquery,
+                answers_votes_subquery.c.answer_id == AnswerModel.id
+            ).group_by(
+                self.model.id,
+                question_votes_subquery.c.questions_upvotes,
+                answers_votes_subquery.c.answers_upvotes
+            )
+        )
+
+        result = await self.session.execute(stmt)
+        return result.unique().all()

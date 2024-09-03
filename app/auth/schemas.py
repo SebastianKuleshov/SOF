@@ -9,3 +9,8 @@ class TokenBaseSchema(BaseModel):
 
 class EmailCreateSchema(BaseModel):
     recipient: str
+
+
+class EmailCreatePayloadSchema(EmailCreateSchema):
+    subject: str
+    body: str

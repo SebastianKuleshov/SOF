@@ -5,6 +5,7 @@ from keycloak import KeycloakPostError, KeycloakError
 
 from app.common.repositories.storage import StorageItemRepository
 from app.common.schemas import StorageItemCreateSchema
+from app.common.services import ReportService
 from app.common.services.storage import StorageItemService
 from app.dependencies import get_settings, keycloak_admin
 from app.roles.models import RoleModel
@@ -21,12 +22,14 @@ class UserService:
             role_repository: Annotated[RoleRepository, Depends()],
             storage_item_service: Annotated[StorageItemService, Depends()],
             storage_item_repository: Annotated[
-                StorageItemRepository, Depends()]
+                StorageItemRepository, Depends()],
+            report_service: Annotated[ReportService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
         self.storage_item_repository = storage_item_repository
+        self.report_service = report_service
 
     async def create_user(
             self,
@@ -133,6 +136,15 @@ class UserService:
             users_with_avatar_url.append(
                 user_with_avatar_url
             )
+
+        print()
+        print()
+        print()
+        res = await self.report_service.generate_report()
+        print(res)
+        print()
+        print()
+        print()
 
         return users_with_avatar_url
 
