@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Sequence
 
 from fastapi import HTTPException
-from sqlalchemy import Select, select, func, Subquery, case, and_
+from sqlalchemy import Select, select, func, Subquery, case, and_, Sequence
+from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.orm import joinedload
 
 from app.answers.models import AnswerModel
@@ -260,3 +260,53 @@ class QuestionRepository(BaseRepository):
     ) -> Sequence[QuestionModel]:
         questions = await self.session.scalars(stmt)
         return questions.unique().all()
+
+    async def get_questions_with_no_answer(
+            self
+    ) -> Sequence[QuestionModel]:
+        questions_with_no_answers_subquery = (
+            select(
+                AnswerModel.question_id
+            ).select_from(
+                AnswerModel
+            ).group_by(AnswerModel.question_id).subquery()
+        )
+
+        stmt = (
+            select(
+                self.model.id,
+                self.model.title
+            ).outerjoin(
+                questions_with_no_answers_subquery,
+                questions_with_no_answers_subquery.c.question_id == self.model.id
+            ).where(
+                and_(
+                    questions_with_no_answers_subquery.c.question_id.is_(None),
+                    self.model.created_at <= func.now() - func.cast(
+                        func.concat(24, ' HOURS'), INTERVAL
+                    )
+                )
+            ).order_by(self.model.created_at.desc())
+        )
+
+        unresolved_questions = await self.session.execute(stmt)
+        return unresolved_questions.unique().all()
+
+    async def get_questions_with_no_accepted_answer(
+            self
+    ) -> Sequence[QuestionModel]:
+        stmt = (
+            select(
+                self.model.id,
+                self.model.title
+            )
+            .where(
+                and_(self.model.accepted_answer_id.is_(None)),
+                self.model.created_at <= func.now() - func.cast(
+                    func.concat(7, ' DAYS'), INTERVAL
+                )
+            )
+        )
+
+        unresolved_questions = await self.session.execute(stmt)
+        return unresolved_questions.unique().all()

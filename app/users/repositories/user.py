@@ -1,11 +1,13 @@
 from fastapi import HTTPException
-from sqlalchemy import select, Select, text, func, case
+from sqlalchemy import select, Select, text, case, distinct, Numeric, cast, \
+    desc, Sequence
+from sqlalchemy.dialects.postgresql import INTERVAL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql.functions import coalesce, func
 
 from app.answers.models import AnswerModel
 from app.common.repositories.base_repository import BaseRepository
-from app.questions.models import QuestionModel
 from app.roles.models import RoleModel
 from app.users.models import UserModel
 from app.votes.models import VotesModel
@@ -90,62 +92,120 @@ class UserRepository(BaseRepository):
             )
         return True
 
-    async def get_top_contributors(self):
-        question_votes_subquery = (
+    async def get_top_contributors(
+            self
+    ) -> Sequence[UserModel]:
+
+        answers_count_subquery = (
             select(
-                VotesModel.question_id,
+                AnswerModel.user_id,
+                func.count(distinct(AnswerModel.id)).label('total_answers'),
                 func.sum(
                     case(
-                        (VotesModel.is_upvote == True, 1),
+                        (AnswerModel.created_at >= func.now() -
+                         func.cast(func.concat(24, ' HOURS'), INTERVAL), 1),
                         else_=0
-                    )
-                ).label('questions_upvotes'),
-            ).group_by(VotesModel.question_id).subquery()
+                    ),
+                ).label('answers_amount_24h'),
+                case(
+                    (func.min(AnswerModel.created_at) is not None,
+                     func.count(AnswerModel.id) / func.ceil(
+                         func.date_part(
+                             'days', func.now() - func.min(
+                                 AnswerModel.created_at
+                             )
+                         )
+                         / 7.0
+                     ),
+                     ),
+                    else_=0
+                ).label('average_answers_amount_7d')
+            ).select_from(
+                AnswerModel
+            ).group_by(AnswerModel.user_id).subquery()
         )
 
-        answers_votes_subquery = (
+        votes_count_subquery = (
             select(
-                VotesModel.answer_id,
+                AnswerModel.user_id,
                 func.sum(
                     case(
-                        (VotesModel.is_upvote == True, 1),
+                        (True == VotesModel.is_upvote, 1),
                         else_=0
                     )
-                ).label('answers_upvotes'),
-            ).group_by(VotesModel.answer_id).subquery()
+                ).label('total_answer_upvotes'),
+                func.sum(
+                    case(
+                        (False == VotesModel.is_upvote, 1),
+                        else_=0
+                    )
+                ).label('total_answer_downvotes')
+            ).select_from(
+                VotesModel
+            ).join(
+                AnswerModel,
+                AnswerModel.id == VotesModel.answer_id
+            ).group_by(AnswerModel.user_id).subquery()
         )
-
-
 
         stmt = (
             select(
                 self.model.id,
-                func.coalesce(
-                    question_votes_subquery.c.questions_upvotes,
-                    0
-                ).label('questions_upvotes'),
-                func.coalesce(
-                    answers_votes_subquery.c.answers_upvotes,
-                    0
-                ).label('answers_upvotes')
+                self.model.nick_name,
+                coalesce(
+                    answers_count_subquery.c.total_answers, 0
+                ).label('total_answers'),
+                coalesce(
+                    answers_count_subquery.c.answers_amount_24h, 0
+                ).label('answers_amount_24h'),
+                func.round(
+                    coalesce(
+                        answers_count_subquery.c.average_answers_amount_7d, 0
+                    ), 3
+                ).label('average_answers_amount_7d'),
+                coalesce(
+                    votes_count_subquery.c.total_answer_upvotes, 0
+                ).label('total_answer_upvotes'),
+                func.round(
+                    coalesce(
+                        votes_count_subquery.c.total_answer_upvotes, 0
+                    ) / coalesce(
+                        cast(
+                            answers_count_subquery.c.total_answers, Numeric
+                        ), 1.0
+                    ), 3
+                ).label('average_upvotes_per_answer'),
+                coalesce(
+                    votes_count_subquery.c.total_answer_downvotes, 0
+                ).label('total_answer_downvotes'),
+                func.round(
+                    coalesce(
+                        votes_count_subquery.c.total_answer_downvotes, 0
+                    ) / coalesce(
+                        cast(
+                            answers_count_subquery.c.total_answers, Numeric
+                        ), 1.0
+                    ), 3
+                ).label('average_downvotes_per_answer'),
             ).outerjoin(
-                QuestionModel,
-                QuestionModel.user_id == self.model.id
+                answers_count_subquery,
+                answers_count_subquery.c.user_id == self.model.id
             ).outerjoin(
-                AnswerModel,
-                AnswerModel.user_id == self.model.id
-            ).outerjoin(
-                question_votes_subquery,
-                question_votes_subquery.c.question_id == QuestionModel.id
-            ).outerjoin(
-                answers_votes_subquery,
-                answers_votes_subquery.c.answer_id == AnswerModel.id
-            ).group_by(
-                self.model.id,
-                question_votes_subquery.c.questions_upvotes,
-                answers_votes_subquery.c.answers_upvotes
-            )
+                votes_count_subquery,
+                votes_count_subquery.c.user_id == self.model.id
+            ).order_by(
+                desc(
+                    coalesce(
+                        answers_count_subquery.c.total_answers, 0
+                    )
+                ),
+                desc(
+                    coalesce(
+                        votes_count_subquery.c.total_answer_upvotes, 0
+                    )
+                )
+            ).limit(5)
         )
 
-        result = await self.session.execute(stmt)
-        return result.unique().all()
+        top_contributors = await self.session.execute(stmt)
+        return top_contributors.unique().fetchall()

@@ -137,14 +137,7 @@ class UserService:
                 user_with_avatar_url
             )
 
-        print()
-        print()
-        print()
-        res = await self.report_service.generate_report()
-        print(res)
-        print()
-        print()
-        print()
+        await self.report_service.generate_report()
 
         return users_with_avatar_url
 
