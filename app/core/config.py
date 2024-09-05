@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     REDIS_URL: str
     CORS_ALLOW_ORIGINS: str
     BASE_URL: str
+    EMAIL_SMTP_HOST: str
+    EMAIL_SMTP_PORT: int
+    EMAIL_SMTP_TLS: bool
+    EMAIL_SMTP_USERNAME: str
+    EMAIL_SMTP_PASSWORD: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
     AWS_BUCKET_NAME: str
@@ -21,6 +26,7 @@ class Settings(BaseSettings):
     KEYCLOAK_MASTER_REALM: str
     SUPERUSER_USERNAME: str
     SUPERUSER_PASSWORD: str
+    SUPERUSER_EMAIL: str
 
     class Config:
         env_file = './app/.env'

@@ -31,6 +31,12 @@ class EmailService:
         message["To"] = email_schema.recipient
         message["Subject"] = email_schema.subject
         message.set_content(email_schema.body)
+        if email_schema.attachments:
+            for attachment in email_schema.attachments:
+                message.add_attachment(
+                    attachment.content,
+                    filename=attachment.filename
+                )
 
         try:
             await aiosmtplib.send(

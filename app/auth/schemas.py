@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class TokenBaseSchema(BaseModel):
@@ -8,9 +8,15 @@ class TokenBaseSchema(BaseModel):
 
 
 class EmailCreateSchema(BaseModel):
-    recipient: str
+    recipient: EmailStr
+
+
+class EmailAttachmentSchema(BaseModel):
+    content: str
+    filename: str
 
 
 class EmailCreatePayloadSchema(EmailCreateSchema):
     subject: str
     body: str
+    attachments: list[EmailAttachmentSchema] | None = None

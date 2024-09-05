@@ -137,8 +137,6 @@ class UserService:
                 user_with_avatar_url
             )
 
-        await self.report_service.generate_report()
-
         return users_with_avatar_url
 
     async def update_user(

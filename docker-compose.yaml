@@ -10,6 +10,7 @@ services:
       - redis
       - kc_db
       - keycloak
+      - celery_worker
     build: .
     working_dir: /app
     command: uvicorn app.main:app --reload --host ${UVICORN_HOST} --port ${WEB_PORT_CONTAINER}
@@ -49,6 +50,38 @@ services:
     volumes:
       - './redis_data:/data/'
     container_name: redis
+    networks:
+      - SOFCopy
+
+  celery_worker:
+    depends_on:
+      - redis
+    build: .
+    working_dir: /app
+    command: celery -A app.core.adapters.celery.celery_adapter worker --loglevel=info
+    volumes:
+      - ".:/app/"
+    environment:
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+    container_name: celery_worker
+    networks:
+      - SOFCopy
+
+  celery_beat:
+    depends_on:
+      - celery_worker
+      - redis
+      - web
+    build: .
+    working_dir: /app
+    command: celery -A app.core.adapters.celery.celery_adapter beat --loglevel=info
+    volumes:
+      - ".:/app/"
+    environment:
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+    container_name: celery_beat
     networks:
       - SOFCopy
 
