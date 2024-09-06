@@ -59,13 +59,13 @@ class BaseRepository(ABC):
 
     async def get_by_id(
             self,
-            entity_id: int | str
+            entity_id: int
     ) -> MODEL | None:
         return await self.session.get(self.model, entity_id)
 
     async def get_by_id_with_joins(
             self,
-            entity_id: int | str
+            entity_id: int
     ) -> MODEL | None:
         stmt = self._get_default_stmt()
         return await self.session.scalar(stmt.filter_by(id=entity_id))
@@ -96,7 +96,7 @@ class BaseRepository(ABC):
 
     async def get_entity_if_exists(
             self,
-            entity_id: int | str
+            entity_id: int
     ) -> MODEL | None:
         entity = await self.get_by_id(entity_id)
         if not entity:
@@ -147,7 +147,7 @@ class BaseRepository(ABC):
 
     async def update(
             self,
-            entity_id: int | str,
+            entity_id: int,
             entity: SCHEMA | dict,
             exclude_unset: bool = True
     ) -> SCHEMA:
@@ -179,7 +179,7 @@ class BaseRepository(ABC):
 
     async def soft_delete(
             self,
-            entity_id: int | str
+            entity_id: int
     ) -> bool:
         stmt = update(self.model).where(self.model.id == entity_id).values(
             {"deleted_at": datetime.now()}
@@ -193,7 +193,7 @@ class BaseRepository(ABC):
 
     async def delete(
             self,
-            entity_id: int | str
+            entity_id: int
     ) -> bool:
         stmt = delete(self.model).where(self.model.id == entity_id)
         await self.session.execute(stmt)
@@ -203,7 +203,7 @@ class BaseRepository(ABC):
 
     async def delete_many(
             self,
-            entity_ids: List[int | str]
+            entity_ids: List[int]
     ) -> bool:
         stmt = delete(self.model).where(self.model.id.in_(entity_ids))
         await self.session.execute(stmt)

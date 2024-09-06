@@ -1,0 +1,17 @@
+# Use the official Keycloak image as the base image
+FROM quay.io/keycloak/keycloak:latest
+
+# Copy the realm configuration file
+COPY ./SOF-realm-template.json /opt/keycloak/data/templates/SOF-realm-template.json
+
+COPY ./replace-placeholders.sh /opt/keycloak/replace-placeholders.sh
+
+USER root
+RUN chmod +x /opt/keycloak/replace-placeholders.sh
+
+RUN chown -R 1000:1000 /opt/keycloak/data/templates/SOF-realm-template.json
+
+ENTRYPOINT [ "/opt/keycloak/replace-placeholders.sh" ]
+USER 1000
+
+CMD ["start-dev", "--import-realm"]

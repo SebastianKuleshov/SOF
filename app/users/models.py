@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 
-from app.common.models_mixins import CreatedAtUpdatedAtMixin, str_pk
+from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
 from app.core.adapters.postgres.postgres_adapter import Base
 from app.roles.models import RoleModel
 
@@ -25,7 +25,8 @@ role_user = Table(
 class UserModel(CreatedAtUpdatedAtMixin, Base):
     __tablename__ = 'users'
 
-    id: Mapped[str_pk]
+    id: Mapped[int_pk]
+    external_id: Mapped[str] = mapped_column(nullable=True)
     nick_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
     biography: Mapped[str] = mapped_column(nullable=True)

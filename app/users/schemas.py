@@ -15,7 +15,7 @@ class UserCreateSchema(PasswordCreationMixin, UserBaseSchema):
 
 
 class UserCreatePayloadSchema(UserCreateSchema):
-    id: str
+    external_id: str
 
 
 class UserInRequestSchema(UserBaseSchema):
@@ -34,7 +34,7 @@ class UserUpdatePayloadSchema(UserUpdateSchema):
 
 
 class UserOutSchema(UserBaseSchema, CreatedAtUpdatedAtMixin):
-    id: str
+    id: int
     nick_name: str
     biography: str | None = None
     reputation: int

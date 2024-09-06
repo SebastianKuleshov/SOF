@@ -29,7 +29,7 @@ class AnswerService:
     async def create_answer(
             self,
             answer_schema: AnswerCreateSchema,
-            user_id: str
+            user_id: int
     ) -> AnswerOutSchema:
         answer_schema = AnswerCreatePayloadSchema(
             **answer_schema.model_dump(),
@@ -49,7 +49,7 @@ class AnswerService:
     async def update_answer(
             self,
             answer_id: int,
-            user_id: str,
+            user_id: int,
             answer_schema: AnswerUpdateSchema
     ) -> AnswerWithJoinsOutSchema:
         answer = await self.answer_repository.get_entity_if_exists(answer_id)
@@ -74,7 +74,7 @@ class AnswerService:
     async def delete_answer(
             self,
             answer_id: int,
-            user_id: str
+            user_id: int
     ) -> bool:
         answer = await self.answer_repository.get_entity_if_exists(answer_id)
         user_permissions = await self.user_service.get_user_permissions(

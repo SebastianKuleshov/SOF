@@ -15,7 +15,7 @@ class AuthRepository:
 
     async def create_token(
             self,
-            user_id: str,
+            user_id: int,
             token: str
     ) -> bool:
         key = str(user_id)
@@ -24,7 +24,7 @@ class AuthRepository:
 
     async def check_token(
             self,
-            user_id: str,
+            user_id: int,
             token: str
     ) -> bool:
         key = str(user_id)
@@ -33,7 +33,7 @@ class AuthRepository:
 
     async def delete_user_tokens(
             self,
-            user_id: str
+            user_id: int
     ) -> bool:
         key = str(user_id)
         return await self.redis.delete(key)

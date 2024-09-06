@@ -12,7 +12,7 @@ class CommentModel(CreatedAtUpdatedAtMixin, Base):
 
     id: Mapped[int_pk]
     body: Mapped[Text]
-    user_id: Mapped[str] = mapped_column(
+    user_id: Mapped[int] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE')
     )
     question_id: Mapped[int] = mapped_column(

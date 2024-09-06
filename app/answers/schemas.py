@@ -20,7 +20,7 @@ class AnswerCreateSchema(AnswerBaseSchema):
 
 
 class AnswerCreatePayloadSchema(AnswerCreateSchema):
-    user_id: str
+    user_id: int
 
 
 class AnswerUpdateSchema(AnswerBaseSchema):
@@ -29,7 +29,7 @@ class AnswerUpdateSchema(AnswerBaseSchema):
 
 class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
-    user_id: str
+    user_id: int
     question_id: int
     votes: list[VoteOutSchema] | None = Field(None, exclude=True)
 
@@ -46,7 +46,7 @@ class AnswerOutSchema(AnswerBaseSchema, CreatedAtUpdatedAtMixin):
 
 class AnswerWithCommentsOutSchema(AnswerOutSchema):
     comments: list[CommentOutSchema]
-    current_user_id: str | None = Field(None, exclude=True)
+    current_user_id: int | None = Field(None, exclude=True)
 
     # Checks if the current user has voted on the answer.
     # If the user has voted, it returns the VoteOutSchema.
