@@ -89,6 +89,7 @@ services:
       - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT}
       - EMAIL_SMTP_USERNAME=${EMAIL_SMTP_USERNAME}
       - EMAIL_SMTP_PASSWORD=${EMAIL_SMTP_PASSWORD}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     container_name: keycloak
     networks:
       - SOFCopy
