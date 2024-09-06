@@ -1,17 +1,17 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, UploadFile
-from keycloak import KeycloakPostError, KeycloakError
+from keycloak import KeycloakError
 
-from app.common.repositories.storage import StorageItemRepository
+from app.common.repositories import StorageItemRepository
 from app.common.schemas import StorageItemCreateSchema
-from app.common.services.storage import StorageItemService
-from app.dependencies import get_settings, keycloak_admin
+from app.common.services import StorageItemService, KeycloakService
+from app.dependencies import get_settings
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
-from app.users.schemas import UserCreateSchema, UserOutSchema, \
-    UserUpdateSchema, UserUpdatePayloadSchema, UserCreatePayloadSchema
+from app.users.schemas import UserOutSchema, \
+    UserUpdateSchema, UserUpdatePayloadSchema
 
 
 class UserService:
@@ -20,69 +20,19 @@ class UserService:
             user_repository: Annotated[UserRepository, Depends()],
             role_repository: Annotated[RoleRepository, Depends()],
             storage_item_service: Annotated[StorageItemService, Depends()],
+            keycloak_service: Annotated[KeycloakService, Depends()],
             storage_item_repository: Annotated[
                 StorageItemRepository, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
+        self.keycloak_service = keycloak_service
         self.storage_item_repository = storage_item_repository
-
-    async def create_user(
-            self,
-            user: UserCreateSchema
-    ) -> UserOutSchema:
-
-        if await self.user_repository.get_one(
-                {'email': user.email}
-        ) is not None:
-            raise HTTPException(
-                status_code=400,
-                detail='Email already exists'
-            )
-
-        try:
-            user_id = await keycloak_admin.a_create_user(
-                {
-                    'email': user.email,
-                    'username': user.nick_name,
-                    'enabled': True,
-                    'emailVerified': False,
-                    'credentials': [
-                        {
-                            'type': 'password',
-                            'value': user.password,
-                            'temporary': False
-                        }
-                    ]
-                }
-            )
-        except KeycloakPostError:
-            raise HTTPException(
-                status_code=400,
-                detail='Failed to create user in Keycloak'
-            )
-
-        user = UserCreatePayloadSchema(
-            **user.model_dump(),
-            id=user_id,
-            password=user.password,
-            repeat_password=user.password
-        )
-
-        user_model = await self.user_repository.create(user)
-
-        roles = await self.role_repository.get_roles_by_name(['user'])
-        await self.user_repository.attach_roles_to_user(
-            user_model.id,
-            roles
-        )
-
-        return UserOutSchema.model_validate(user_model)
 
     async def get_user(
             self,
-            user_id: str
+            user_id: int
     ) -> UserOutSchema:
         user_model = await self.user_repository.get_by_id(user_id)
 
@@ -138,8 +88,8 @@ class UserService:
 
     async def update_user(
             self,
-            target_user_id: str,
-            requesting_user_id: str,
+            target_user_id: int,
+            requesting_user_id: int,
             user_schema: UserUpdateSchema,
             file: UploadFile
     ) -> UserOutSchema:
@@ -156,11 +106,9 @@ class UserService:
 
         if user_schema.email is not None:
             try:
-                await keycloak_admin.a_update_user(
-                    target_user_id,
-                    {
-                        'email': user_schema.email
-                    }
+                await self.keycloak_service.update_account(
+                    user_model.external_id,
+                    {'email': user_schema.email}
                 )
             except KeycloakError:
                 raise HTTPException(
@@ -229,8 +177,8 @@ class UserService:
 
     async def delete_user(
             self,
-            target_user_id: str,
-            requesting_user_id: str
+            target_user_id: int,
+            requesting_user_id: int
     ) -> bool:
         user = await self.user_repository.get_entity_if_exists(target_user_id)
         if user.id != requesting_user_id:
@@ -242,7 +190,7 @@ class UserService:
 
     async def __check_if_roles_already_attached(
             self,
-            user_id: str,
+            user_id: int,
             roles: list[RoleModel]
     ) -> bool:
         user = await self.user_repository.get_by_id_with_roles(user_id)
@@ -255,8 +203,8 @@ class UserService:
 
     async def ban_user(
             self,
-            requesting_user_id: str,
-            target_user_id: str
+            requesting_user_id: int,
+            target_user_id: int
     ) -> bool:
         await self.user_repository.get_entity_if_exists(
             target_user_id
@@ -282,7 +230,7 @@ class UserService:
 
     async def unban_user(
             self,
-            target_user_id: str
+            target_user_id: int
     ) -> bool:
         await self.user_repository.get_entity_if_exists(
             target_user_id
@@ -298,7 +246,7 @@ class UserService:
 
     async def get_user_permissions(
             self,
-            user_id: str
+            user_id: int
     ) -> set[str]:
         user = await self.user_repository.get_by_id_with_joins(user_id)
         user_permissions = {
@@ -310,7 +258,7 @@ class UserService:
 
     async def check_and_update_user_role(
             self,
-            user_id: str,
+            user_id: int,
             increase: bool
     ) -> bool:
         roles = await self.role_repository.get_roles_by_name(

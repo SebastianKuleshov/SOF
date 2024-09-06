@@ -21,16 +21,6 @@ private_router = APIRouter(
 
 # Public routes
 
-@public_router.post(
-    '/',
-    response_model=user_schemas.UserOutSchema
-)
-async def create_user(
-        user_service: Annotated[UserService, Depends()],
-        user: user_schemas.UserCreateSchema
-):
-    return await user_service.create_user(user)
-
 
 @public_router.get(
     '/',
@@ -50,7 +40,7 @@ async def get_users(
 )
 async def get_user(
         user_service: Annotated[UserService, Depends()],
-        user_id: str
+        user_id: int
 ):
     return await user_service.get_user(user_id)
 
@@ -78,7 +68,7 @@ async def update_user(
             AuthService.get_user_id_from_request, Depends()
         ],
         user_schema: Json[user_schemas.UserUpdateSchema],
-        user_id: str,
+        user_id: int,
         avatar_file: UploadFile | str = None
 ):
     return await user_service.update_user(
@@ -97,7 +87,7 @@ async def delete_current_user(
         requesting_user_id: Annotated[
             AuthService.get_user_id_from_request, Depends()
         ],
-        user_id: str
+        user_id: int
 ) -> bool:
     return await user_service.delete_user(
         user_id,
@@ -114,7 +104,7 @@ async def ban_user(
         requesting_user_id: Annotated[
             AuthService.get_user_id_from_request, Depends()
         ],
-        target_user_id: str
+        target_user_id: int
 ) -> bool:
     return await user_service.ban_user(
         requesting_user_id,
@@ -128,7 +118,7 @@ async def ban_user(
 )
 async def unban_user(
         user_service: Annotated[UserService, Depends()],
-        target_user_id: str
+        target_user_id: int
 ) -> bool:
     return await user_service.unban_user(
         target_user_id

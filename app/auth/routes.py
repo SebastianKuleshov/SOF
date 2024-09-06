@@ -6,11 +6,23 @@ from fastapi.security import OAuth2PasswordRequestForm, \
 
 from app.auth import schemas
 from app.auth.services import AuthService
+from app.users import schemas as user_schemas
 
 router = APIRouter(
     prefix='/auth',
     tags=['auth']
 )
+
+
+@router.post(
+    '/sign-up',
+    response_model=user_schemas.UserOutSchema
+)
+async def sign_up(
+        auth_service: Annotated[AuthService, Depends()],
+        user: user_schemas.UserCreateSchema
+):
+    return await auth_service.sign_up(user)
 
 
 @router.post(

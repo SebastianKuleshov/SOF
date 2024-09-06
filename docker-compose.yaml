@@ -68,7 +68,10 @@ services:
       - SOFCopy
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    user: root
+    build:
+      context: .
+      dockerfile: Dockerfile_keycloak
     depends_on:
       - kc_db
     restart: always
@@ -81,9 +84,11 @@ services:
       - KC_DB_USERNAME=${KC_DB_USER}
       - KC_DB_PASSWORD=${KC_DB_PASSWORD}
       - KC_DB_URL=jdbc:postgresql://kc_db/${KC_DB_NAME}
-    command: start-dev
-    volumes:
-      - ./keycloak:/var/lib/keycloak/data/
+      - SUPERUSER_EMAIL=${SUPERUSER_EMAIL}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT}
+      - EMAIL_SMTP_USERNAME=${EMAIL_SMTP_USERNAME}
+      - EMAIL_SMTP_PASSWORD=${EMAIL_SMTP_PASSWORD}
     container_name: keycloak
     networks:
       - SOFCopy

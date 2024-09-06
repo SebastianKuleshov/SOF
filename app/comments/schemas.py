@@ -29,7 +29,7 @@ class CommentCreateSchema(CommentBaseSchema):
 
 
 class CommentCreatePayloadSchema(CommentCreateSchema):
-    user_id: str
+    user_id: int
 
 
 class CommentUpdateSchema(CommentBaseSchema):
@@ -38,6 +38,6 @@ class CommentUpdateSchema(CommentBaseSchema):
 
 class CommentOutSchema(CommentBaseSchema, CreatedAtUpdatedAtMixin):
     id: int
-    user_id: str
+    user_id: int
     question_id: int | None
     answer_id: int | None

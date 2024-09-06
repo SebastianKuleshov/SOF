@@ -33,7 +33,7 @@ class RoleService:
     async def attach_role_to_user(
             self,
             role_id: int,
-            user_id: str
+            user_id: int
     ) -> bool:
         role = await self.role_repository.get_entity_if_exists(role_id)
         user = await self.user_repository.get_entity_if_exists(user_id)
@@ -50,7 +50,7 @@ class RoleService:
     async def detach_role_from_user(
             self,
             role_id: int,
-            user_id: str
+            user_id: int
     ):
         role = await self.role_repository.get_entity_if_exists(role_id)
         user = await self.user_repository.get_entity_if_exists(user_id)

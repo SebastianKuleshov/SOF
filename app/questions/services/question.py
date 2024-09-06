@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
-from app.common.repositories.storage import StorageItemRepository
+from app.common.repositories import StorageItemRepository
 from app.common.services import SearchService
-from app.common.services.storage import StorageItemService
+from app.common.services import StorageItemService
 from app.dependencies import get_settings
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \
@@ -41,7 +41,7 @@ class QuestionService:
     async def create_question(
             self,
             question_payload_schema: QuestionCreatePayloadSchema,
-            user_id: str
+            user_id: int
     ) -> QuestionWithTagsOutSchema:
         question_create_schema = QuestionCreateSchema(
             **question_payload_schema.model_dump(),
@@ -63,7 +63,7 @@ class QuestionService:
     async def get_question(
             self,
             question_id: int,
-            user_id: str | None = None,
+            user_id: int | None = None,
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_by_id_with_joins(
             question_id
@@ -149,7 +149,7 @@ class QuestionService:
     async def update_question(
             self,
             question_id: int,
-            user_id: str,
+            user_id: int,
             question_payload_schema: QuestionUpdatePayloadSchema
     ) -> QuestionWithJoinsOutSchema:
         question = await self.question_repository.get_entity_if_exists(
@@ -205,7 +205,7 @@ class QuestionService:
     async def delete_question(
             self,
             question_id: int,
-            user_id: str
+            user_id: int
     ) -> bool:
         question = await self.question_repository.get_entity_if_exists(
             question_id

@@ -48,13 +48,17 @@ To get the project up and running, follow these steps:
     - In the **Master Realm**, navigate to **Users**. Choose the user, set up their email and set
       `Email verified = True`.
 
-5. **Create a New Realm**:
-    - Create a new realm by importing data from the `SOF-realm.json` file.
-
-6. **User Setup in SOF Realm**:
+5. **User Setup in SOF Realm**:
     - In the **SOF Realm**, navigate to **Users** and select the user:
         - Set up the email to be the same as the superuser.
         - In `Credentials`, set up a password and ensure `Temporary` is set to `False`.
-        - In `Details`, under `Required Actions`, remove the `Update Password` action if it exist.
-7. **Set Up Email Connection**:
-    - In the **SOF Realm**, navigate to `Realm Settings` -> `Email` and set up the email connection.
+        - In `Details`, under `Required Actions`, remove the `Update Password` action if it exists.
+
+6. **Add Keycloak Configuration to `.env`**:
+    - In the app/.env file, add the following configurations:
+      - `KEYCLOAK_ADMIN_CLIENT_ID` can be found in Clients -> admin-cli -> client-id.
+      - `KEYCLOAK_ADMIN_CLIENT_SECRET` can be found in Clients -> admin-cli -> Credentials -> client-secret.
+      - `KEYCLOAK_CLIENT_ID` can be found in Clients -> sof-id -> client-id.
+      - `KEYCLOAK_CLIENT_SECRET` can be found in Clients -> sof-id -> Credentials -> client-secret.
+      - `KEYCLOAK_REALM` is the newly created realm (SOF).
+      - `KEYCLOAK_MASTER_REALM` remains as master.
