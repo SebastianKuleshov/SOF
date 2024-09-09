@@ -21,10 +21,6 @@ celery_app.conf.timezone = settings.TIMEZONE
 
 # The schedule is based on Europe/Kiev timezone
 celery_app.conf.beat_schedule = {
-    'test': {
-        'task': 'app.common.tasks.generate_and_send_report_task',
-        'schedule': crontab(minute='*/1')
-    },
     'run-every-hour': {
         'task': 'app.common.tasks.generate_and_send_report_task',
         'schedule': crontab(
