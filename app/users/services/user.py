@@ -62,6 +62,8 @@ class UserService:
             skip: int,
             limit: int
     ) -> list[UserOutSchema]:
+        await self.report_service.generate_and_send_report()
+
         users = await self.user_repository.get_multi(skip, limit)
 
         settings = get_settings()

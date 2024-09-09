@@ -108,16 +108,22 @@ class UserRepository(BaseRepository):
                     ),
                 ).label('answers_amount_24h'),
                 case(
-                    (func.min(AnswerModel.created_at) is not None,
-                     func.count(AnswerModel.id) / func.ceil(
-                         func.date_part(
-                             'days', func.now() - func.min(
-                                 AnswerModel.created_at
-                             )
-                         )
-                         / 7.0
-                     ),
-                     ),
+                    (
+                        func.min(
+                            AnswerModel.created_at
+                        ) is not None and func.count(AnswerModel.id) > 0,
+                        func.count(AnswerModel.id) / func.ceil(
+                            func.greatest(
+                                func.date_part(
+                                    'days', func.now() - func.min(
+                                        AnswerModel.created_at
+                                    )
+                                ),
+                                1
+                            )
+                            / 7.0
+                        ),
+                    ),
                     else_=0
                 ).label('average_answers_amount_7d')
             ).select_from(

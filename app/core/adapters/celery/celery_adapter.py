@@ -11,29 +11,34 @@ CELERY_RESULT_BACKEND = settings.REDIS_URL
 celery_app = Celery(
     broker=CELERY_BROCKER_URL,
     backend=CELERY_RESULT_BACKEND,
+    include=['app.common.tasks']
 )
-
-
-@celery_app.task
-def my_task():
-    print('Hello from my_task')
-    return 1 + 2
-
 
 celery_app.conf.broker_connection_retry_on_startup = True
 
-# @celery_app.on_after_configure.connect
-# def setup_periodic_tasks(sender, **kwargs):
-#     sender.add_periodic_task(10.0, my_task.s(), name='add every 10')
+celery_app.conf.timezone = settings.TIMEZONE
 
-celery_app.conf.update(
-    beat_schedule={
-        'run-every-10-seconds': {
-            'task': 'app.core.adapters.celery.celery_adapter.my_task',
-            # 'schedule': 10.0,
-            'schedule': crontab(minute="*/1", hour="*")
-        }
+
+# The schedule is based on Europe/Kiev timezone
+celery_app.conf.beat_schedule = {
+    'run-every-hour': {
+        'task': 'app.common.tasks.generate_and_send_report_task',
+        'schedule': crontab(
+            minute='0',
+            hour='9,12,15',
+            day_of_week='1-5',
+            day_of_month='*',
+            month_of_year='*'
+        )
+    },
+    'run-every-mid-hour': {
+        'task': 'app.common.tasks.generate_and_send_report_task',
+        'schedule': crontab(
+            minute='30',
+            hour='10,13,16',
+            day_of_week='1-5',
+            day_of_month='*',
+            month_of_year='*'
+        )
     }
-)
-
-print('Celery app started')
+}

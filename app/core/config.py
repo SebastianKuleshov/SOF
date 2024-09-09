@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SUPERUSER_USERNAME: str
     SUPERUSER_PASSWORD: str
     SUPERUSER_EMAIL: str
+    TIMEZONE: str
 
     class Config:
         env_file = './app/.env'
