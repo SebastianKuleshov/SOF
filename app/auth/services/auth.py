@@ -151,7 +151,7 @@ class AuthService:
             external_user_id,
             tokens.access_token
         )
-        return TokenBaseSchema.model_validate(tokens)
+        return tokens
 
     async def logout(
             self,
