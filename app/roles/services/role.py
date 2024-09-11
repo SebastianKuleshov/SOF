@@ -51,7 +51,7 @@ class RoleService:
             self,
             role_id: int,
             user_id: int
-    ):
+    ) -> bool:
         role = await self.role_repository.get_entity_if_exists(role_id)
         user = await self.user_repository.get_entity_if_exists(user_id)
         if role not in user.roles:

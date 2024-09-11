@@ -56,7 +56,7 @@ class AuthService:
         try:
             payload = await keycloak_service.decode_token(token)
 
-            external_user_id = payload.get('sub')
+            external_user_id = payload.sub
             user = await user_repository.get_one(
                 {'external_id': external_user_id}
             )
@@ -131,11 +131,11 @@ class AuthService:
         tokens = await self.keycloak_service.get_tokens_by_user_credentials(
             form_data
         )
-        access_token = tokens.get('access_token')
+        access_token = tokens.access_token
         payload = await self.keycloak_service.decode_token(access_token)
-        external_user_id = payload.get('sub')
+        external_user_id = payload.sub
         await self.auth_repository.create_token(external_user_id, access_token)
-        return TokenBaseSchema.model_validate(tokens)
+        return tokens
 
     async def refresh(
             self,
@@ -149,9 +149,9 @@ class AuthService:
         await self.auth_repository.delete_user_tokens(external_user_id)
         await self.auth_repository.create_token(
             external_user_id,
-            tokens.get('access_token')
+            tokens.access_token
         )
-        return TokenBaseSchema.model_validate(tokens)
+        return tokens
 
     async def logout(
             self,

@@ -7,6 +7,10 @@ class TokenBaseSchema(BaseModel):
     token_type: str
 
 
+class DecodedTokenBaseSchema(BaseModel):
+    sub: str
+
+
 class EmailCreateSchema(BaseModel):
     recipient: EmailStr
 
