@@ -41,7 +41,3 @@ class CommentOutSchema(CommentBaseSchema, CreatedAtUpdatedAtMixin):
     user_id: int
     question_id: int | None
     answer_id: int | None
-
-
-class CommentWithUserOutSchema(CommentOutSchema):
-    user: UserOutSchema

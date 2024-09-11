@@ -8,6 +8,8 @@ services:
     depends_on:
       - db
       - redis
+      - kc_db
+      - keycloak
     build: .
     working_dir: /app
     command: uvicorn app.main:app --reload --host ${UVICORN_HOST} --port ${WEB_PORT_CONTAINER}
@@ -47,5 +49,47 @@ services:
     volumes:
       - './redis_data:/data/'
     container_name: redis
+    networks:
+      - SOFCopy
+
+  kc_db:
+    image: postgres:14-alpine
+    restart: always
+    ports:
+      - ${KC_DB_PORT_HOST}:${KC_DB_PORT_CONTAINER}
+    environment:
+      - POSTGRES_PASSWORD=${KC_DB_PASSWORD}
+      - POSTGRES_USER=${KC_DB_USER}
+      - POSTGRES_DB=${KC_DB_NAME}
+    volumes:
+      - "./kc_databases:/var/lib/postgresql/data/"
+    container_name: kc_db
+    networks:
+      - SOFCopy
+
+  keycloak:
+    user: root
+    build:
+      context: .
+      dockerfile: Dockerfile_keycloak
+    depends_on:
+      - kc_db
+    restart: always
+    ports:
+      - ${KEYCLOAK_PORT_HOST}:${KEYCLOAK_PORT_CONTAINER}
+    environment:
+      - KEYCLOAK_ADMIN=${SUPERUSER_USERNAME}
+      - KEYCLOAK_ADMIN_PASSWORD=${SUPERUSER_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_USERNAME=${KC_DB_USER}
+      - KC_DB_PASSWORD=${KC_DB_PASSWORD}
+      - KC_DB_URL=jdbc:postgresql://kc_db/${KC_DB_NAME}
+      - SUPERUSER_EMAIL=${SUPERUSER_EMAIL}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT}
+      - EMAIL_SMTP_USERNAME=${EMAIL_SMTP_USERNAME}
+      - EMAIL_SMTP_PASSWORD=${EMAIL_SMTP_PASSWORD}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+    container_name: keycloak
     networks:
       - SOFCopy

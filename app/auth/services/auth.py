@@ -1,25 +1,18 @@
-from datetime import timedelta, datetime, timezone
 from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.params import Security
-from fastapi.security import OAuth2PasswordRequestForm, \
-    HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import EmailStr
+from fastapi.security import OAuth2PasswordRequestForm
+from jwcrypto.common import JWException
 
 from app.auth.repositories import AuthRepository
-from app.auth.schemas import EmailCreateSchema, \
-    EmailCreatePayloadSchema
-from app.auth.schemas import TokenBaseSchema
-from app.common.schemas_mixins import PasswordCreationMixin
-from app.common.services import EmailService
-from app.dependencies import get_password_hash
-from app.dependencies import get_settings, oauth2_scheme, verify_password
-from app.users.models import UserModel
+from app.auth.schemas import TokenBaseSchema, EmailCreateSchema
+from app.common.services import KeycloakService
+from app.dependencies import oauth2_scheme
+from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
-from app.users.schemas import UserOutSchema, UserInRequestSchema
-from app.users.services import UserService
+from app.users.schemas import UserOutSchema, UserInRequestSchema, \
+    UserCreatePayloadSchema, UserCreateSchema
 
 
 class AuthService:
@@ -27,33 +20,13 @@ class AuthService:
             self,
             user_repository: Annotated[UserRepository, Depends()],
             auth_repository: Annotated[AuthRepository, Depends()],
-            user_service: Annotated[UserService, Depends()],
-            email_service: Annotated[EmailService, Depends()]
+            role_repository: Annotated[RoleRepository, Depends()],
+            keycloak_service: Annotated[KeycloakService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.auth_repository = auth_repository
-        self.user_service = user_service
-        self.email_service = email_service
-
-    @staticmethod
-    async def create_token(
-            to_encode: dict,
-            expires_delta: timedelta
-    ) -> str:
-        expire = datetime.now(timezone.utc) + expires_delta
-
-        settings = get_settings()
-
-        secret_key = settings.SECRET_KEY
-        algorithm = settings.ALGORITHM
-
-        to_encode.update({'exp': expire})
-        encoded_jwt = jwt.encode(
-            to_encode,
-            secret_key,
-            algorithm
-        )
-        return encoded_jwt
+        self.role_repository = role_repository
+        self.keycloak_service = keycloak_service
 
     @staticmethod
     async def get_user_id_from_request(request: Request) -> int:
@@ -71,7 +44,7 @@ class AuthService:
             request: Request,
             user_repository: Annotated[UserRepository, Depends()],
             auth_repository: Annotated[AuthRepository, Depends()],
-            is_refresh: bool = False,
+            keycloak_service: Annotated[KeycloakService, Depends()],
             token: str = Depends(oauth2_scheme)
     ) -> UserOutSchema | None:
         credentials_exception = HTTPException(
@@ -80,36 +53,36 @@ class AuthService:
             headers={'WWW-Authenticate': 'Bearer'},
         )
 
-        settings = get_settings()
-
         try:
-            payload = jwt.decode(
-                token,
-                settings.SECRET_KEY,
-                algorithms=[settings.ALGORITHM]
+            payload = await keycloak_service.decode_token(token)
+
+            external_user_id = payload.sub
+            user = await user_repository.get_one(
+                {'external_id': external_user_id}
             )
-            if is_refresh and payload.get('token_type') != 'refresh':
-                raise credentials_exception
-            user_id = payload.get('sub')
-            token_exists = await auth_repository.check_token(user_id, token)
+            token_exists = await auth_repository.check_token(
+                external_user_id,
+                token
+            )
             if not token_exists:
-                await auth_repository.delete_user_tokens(user_id)
+                await auth_repository.delete_user_tokens(external_user_id)
                 raise HTTPException(
                     status_code=400,
                     detail='Token is invalid'
                 )
 
-            if user_id is None:
+            if user.id is None:
                 raise credentials_exception
-        except jwt.PyJWTError:
+
+        except JWException:
             raise credentials_exception
 
-        user = await user_repository.get_by_id_with_roles(user_id)
+        user = await user_repository.get_by_id_with_roles(user.id)
         if user is None:
             raise credentials_exception
-        user_permissions = await user_repository.get_user_permissions(user_id)
+        user_permissions = await user_repository.get_user_permissions(user.id)
 
-        request.state.user_id = user_id
+        request.state.user_id = user.id
         user_schema = UserInRequestSchema.model_validate(
             {
                 **user.__dict__,
@@ -119,180 +92,97 @@ class AuthService:
         request.state.user = user_schema
         return UserOutSchema.model_validate(user)
 
-    @classmethod
-    async def get_user_id_from_reset_password_jwt(
-            cls,
-            user_repository: Annotated[UserRepository, Depends()],
-            token: HTTPAuthorizationCredentials = Security(
-                HTTPBearer(scheme_name="Reset password")
-            )
-    ) -> int:
-        token = token.credentials
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Could not validate credentials',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-
-        settings = get_settings()
-
-        try:
-            payload = jwt.decode(
-                token,
-                settings.SECRET_KEY,
-                algorithms=[settings.ALGORITHM]
-            )
-
-            user = await user_repository.get_one(
-                {'email': payload.get('sub')}
-            )
-            if user is None:
-                raise credentials_exception
-        except jwt.PyJWTError:
-            raise credentials_exception
-
-        return user.id
-
-    async def __generate_token(
+    async def sign_up(
             self,
-            user_id: int,
-            nick_name: str
-    ) -> TokenBaseSchema:
-        settings = get_settings()
+            user_schema: UserCreateSchema
+    ) -> UserOutSchema:
 
-        to_encode = {'sub': user_id, 'nick_name': nick_name}
+        if await self.user_repository.get_one(
+                {'email': user_schema.email}
+        ) is not None:
+            raise HTTPException(
+                status_code=400,
+                detail='Email already exists'
+            )
 
-        access_token_expire_delta = timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-        access_to_encode = to_encode.copy()
-        access_to_encode.update({'token_type': 'access'})
-        refresh_token_expire_delta = timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
-        refresh_to_encode = to_encode.copy()
-        refresh_to_encode.update({'token_type': 'refresh'})
+        external_user_id = await self.keycloak_service.create_user(user_schema)
 
-        access_token = await self.create_token(
-            access_to_encode,
-            access_token_expire_delta
+        user = UserCreatePayloadSchema(
+            **user_schema.model_dump(),
+            external_id=external_user_id,
+            password=user_schema.password,
+            repeat_password=user_schema.password
         )
 
-        refresh_token = await self.create_token(
-            refresh_to_encode,
-            refresh_token_expire_delta
+        user_model = await self.user_repository.create(user)
+
+        roles = await self.role_repository.get_roles_by_name(['user'])
+        await self.user_repository.attach_roles_to_user(
+            user_model.id,
+            roles
         )
 
-        await self.auth_repository.create_tokens(
-            user_id,
-            refresh_token,
-            access_token
-        )
-
-        return TokenBaseSchema(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type='bearer'
-        )
-
-    async def __authenticate_user(
-            self,
-            email: EmailStr,
-            password: str
-    ) -> UserModel | None:
-        user = await self.user_repository.get_one({'email': email})
-        if not user:
-            return None
-        if not await verify_password(password, user.password):
-            return None
-        return user
+        return UserOutSchema.model_validate(user_model)
 
     async def login(
             self,
             form_data: OAuth2PasswordRequestForm
     ) -> TokenBaseSchema:
-        user = await self.__authenticate_user(
-            form_data.username,
-            form_data.password
+        tokens = await self.keycloak_service.get_tokens_by_user_credentials(
+            form_data
         )
-        if not user:
-            raise HTTPException(
-                status_code=400,
-                detail='Incorrect email or password'
-            )
-
-        return await self.__generate_token(user.id, user.nick_name)
+        access_token = tokens.access_token
+        payload = await self.keycloak_service.decode_token(access_token)
+        external_user_id = payload.sub
+        await self.auth_repository.create_token(external_user_id, access_token)
+        return tokens
 
     async def refresh(
             self,
-            request: Request,
             refresh_token: str
     ) -> TokenBaseSchema:
-        user = await self.get_user_from_jwt(
-            request,
-            self.user_repository,
-            self.auth_repository,
-            True,
-            refresh_token
+        tokens = await self.keycloak_service.refresh_token(refresh_token)
+        payload = jwt.decode(
+            refresh_token, options={'verify_signature': False}
         )
+        external_user_id = payload.get('sub')
+        await self.auth_repository.delete_user_tokens(external_user_id)
+        await self.auth_repository.create_token(
+            external_user_id,
+            tokens.access_token
+        )
+        return tokens
 
-        await self.auth_repository.delete_user_tokens(user.id)
-
-        return await self.__generate_token(user.id, user.nick_name)
+    async def logout(
+            self,
+            refresh_token: str
+    ) -> bool:
+        await self.keycloak_service.logout(refresh_token)
+        payload = jwt.decode(
+            refresh_token, options={'verify_signature': False}
+        )
+        external_user_id = payload.get('sub')
+        await self.auth_repository.delete_user_tokens(external_user_id)
+        return True
 
     async def forgot_password(
             self,
             email_schema: EmailCreateSchema
     ) -> bool:
+
         user = await self.user_repository.get_one(
             {'email': email_schema.recipient}
         )
-        if not user:
+
+        if user is None:
             raise HTTPException(
                 status_code=400,
                 detail='User not found'
             )
-        settings = get_settings()
 
-        to_encode = {'sub': email_schema.recipient}
-
-        verification_token_expire_delta = timedelta(
-            minutes=settings.VERIFICATION_TOKEN_EXPIRE_MINUTES
-        )
-        verification_to_encode = to_encode.copy()
-
-        verification_token = await self.create_token(
-            verification_to_encode,
-            verification_token_expire_delta
-        )
-
-        verification_url = (
-            f'{settings.BASE_URL}/auth/reset-password?verification_token'
-            f'={verification_token}'
-        )
-
-        email_schema = EmailCreatePayloadSchema(
-            **email_schema.model_dump(),
-            subject='YOUR URL',
-            body=f'Your verification url is {verification_url}',
-        )
-
-        return await self.email_service.send_email(
-            email_schema
-        )
-
-    async def reset_password(
-            self,
-            user_id: int,
-            new_password_data: PasswordCreationMixin
-    ) -> bool:
-        new_password_data.password = await get_password_hash(
-            new_password_data.password
-        )
-
-        await self.user_service.user_repository.update(
-            user_id,
-            new_password_data
+        await self.keycloak_service.send_update_account(
+            user.external_id,
+            ['UPDATE_PASSWORD']
         )
 
         return True

@@ -1,8 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.common.schemas_mixins import CreatedAtUpdatedAtMixin
-from app.common.schemas_mixins import PasswordCreationMixin
-from app.permissions.schemas import PermissionOutSchema, PermissionNameSchema
+from app.common.schemas_mixins import CreatedAtUpdatedAtMixin, \
+    PasswordCreationMixin
 
 
 class UserBaseSchema(BaseModel):
@@ -13,6 +12,10 @@ class UserBaseSchema(BaseModel):
 
 class UserCreateSchema(PasswordCreationMixin, UserBaseSchema):
     nick_name: str
+
+
+class UserCreatePayloadSchema(UserCreateSchema):
+    external_id: str
 
 
 class UserInRequestSchema(UserBaseSchema):

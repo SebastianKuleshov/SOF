@@ -21,16 +21,6 @@ private_router = APIRouter(
 
 # Public routes
 
-@public_router.post(
-    '/',
-    response_model=user_schemas.UserOutSchema
-)
-async def create_user(
-        user_service: Annotated[UserService, Depends()],
-        user: user_schemas.UserCreateSchema
-):
-    return await user_service.create_user(user)
-
 
 @public_router.get(
     '/',

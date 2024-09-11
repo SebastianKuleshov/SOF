@@ -1,16 +1,16 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, UploadFile
-from sqlalchemy.exc import IntegrityError
+from keycloak import KeycloakError
 
-from app.common.repositories.storage import StorageItemRepository
+from app.common.repositories import StorageItemRepository
 from app.common.schemas import StorageItemCreateSchema
-from app.common.services.storage import StorageItemService
-from app.dependencies import get_password_hash, get_settings
+from app.common.services import StorageItemService, KeycloakService
+from app.dependencies import get_settings
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
 from app.users.repositories import UserRepository
-from app.users.schemas import UserCreateSchema, UserOutSchema, \
+from app.users.schemas import UserOutSchema, \
     UserUpdateSchema, UserUpdatePayloadSchema
 
 
@@ -20,34 +20,15 @@ class UserService:
             user_repository: Annotated[UserRepository, Depends()],
             role_repository: Annotated[RoleRepository, Depends()],
             storage_item_service: Annotated[StorageItemService, Depends()],
-            storage_item_repository: Annotated[StorageItemRepository, Depends()]
+            keycloak_service: Annotated[KeycloakService, Depends()],
+            storage_item_repository: Annotated[
+                StorageItemRepository, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
+        self.keycloak_service = keycloak_service
         self.storage_item_repository = storage_item_repository
-
-    async def create_user(
-            self,
-            user: UserCreateSchema
-    ) -> UserOutSchema:
-        if await self.user_repository.get_one(
-                {'email': user.email}
-        ) is not None:
-            raise HTTPException(
-                status_code=400,
-                detail='Email already exists'
-            )
-        user.password = await get_password_hash(user.password)
-        user_model = await self.user_repository.create(user)
-
-        roles = await self.role_repository.get_roles_by_name(['user'])
-        await self.user_repository.attach_roles_to_user(
-            user_model.id,
-            roles
-        )
-
-        return UserOutSchema.model_validate(user_model)
 
     async def get_user(
             self,
@@ -123,6 +104,18 @@ class UserService:
 
         settings = get_settings()
 
+        if user_schema.email is not None:
+            try:
+                await self.keycloak_service.update_account(
+                    user_model.external_id,
+                    {'email': user_schema.email}
+                )
+            except KeycloakError:
+                raise HTTPException(
+                    status_code=400,
+                    detail='Email already exists'
+                )
+
         if file:
             stored_file_path = await self.storage_item_service.upload_file(
                 settings.AWS_BUCKET_NAME,
@@ -162,16 +155,10 @@ class UserService:
                 avatar_file_storage_id=new_item_model.id
             )
 
-        try:
-            await self.user_repository.update(
-                target_user_id,
-                user_schema
-            )
-        except IntegrityError:
-            raise HTTPException(
-                status_code=400,
-                detail='Email already exists'
-            )
+        await self.user_repository.update(
+            target_user_id,
+            user_schema
+        )
 
         item_model = await self.storage_item_repository.get_by_id(
             user_model.avatar_file_storage_id

@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from app.answers.repositories import AnswerRepository
-from app.common.repositories.storage import StorageItemRepository
+from app.common.repositories import StorageItemRepository
 from app.common.services import SearchService
-from app.common.services.storage import StorageItemService
+from app.common.services import StorageItemService
 from app.dependencies import get_settings
 from app.questions.repositories import QuestionRepository
 from app.questions.schemas import QuestionCreateSchema, \

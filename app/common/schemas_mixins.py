@@ -2,6 +2,7 @@ import datetime
 import re
 
 from pydantic import BaseModel, field_validator, Field, model_validator
+from sqlalchemy.testing import exclude
 from typing_extensions import Self
 
 
@@ -11,7 +12,7 @@ class CreatedAtUpdatedAtMixin(BaseModel):
 
 
 class PasswordCreationMixin(BaseModel):
-    password: str
+    password: str = Field(exclude=True)
     repeat_password: str = Field(exclude=True)
 
     @field_validator('password')

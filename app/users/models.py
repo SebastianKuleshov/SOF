@@ -26,9 +26,9 @@ class UserModel(CreatedAtUpdatedAtMixin, Base):
     __tablename__ = 'users'
 
     id: Mapped[int_pk]
+    external_id: Mapped[str] = mapped_column(nullable=True)
     nick_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
-    password: Mapped[str] = mapped_column(nullable=False)
     biography: Mapped[str] = mapped_column(nullable=True)
     reputation: Mapped[int] = mapped_column(default=0)
     avatar_file_storage_id: Mapped[int] = mapped_column(
