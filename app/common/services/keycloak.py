@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from keycloak import KeycloakPostError, KeycloakAuthenticationError
 
+from app.auth.schemas import TokenBaseSchema, DecodedTokenBaseSchema
 from app.dependencies import keycloak_openid, keycloak_admin
 from app.users.schemas import UserCreateSchema
 
@@ -41,12 +42,13 @@ class KeycloakService:
     async def get_tokens_by_user_credentials(
             cls,
             form_data: OAuth2PasswordRequestForm
-    ) -> dict:
+    ) -> TokenBaseSchema:
         try:
-            return await cls.keycloak_openid.a_token(
+            tokens_data = await cls.keycloak_openid.a_token(
                 form_data.username,
                 form_data.password
             )
+            return TokenBaseSchema.model_validate(tokens_data)
         except KeycloakAuthenticationError:
             raise HTTPException(
                 status_code=400,
@@ -57,16 +59,18 @@ class KeycloakService:
     async def decode_token(
             cls,
             token: str
-    ) -> dict:
-        return await cls.keycloak_openid.a_decode_token(token)
+    ) -> DecodedTokenBaseSchema:
+        decoded = await cls.keycloak_openid.a_decode_token(token)
+        return DecodedTokenBaseSchema.model_validate(decoded)
 
     @classmethod
     async def refresh_token(
             cls,
             refresh_token: str
-    ) -> dict:
+    ) -> TokenBaseSchema:
         try:
-            return await keycloak_openid.a_refresh_token(refresh_token)
+            tokens_data = await keycloak_openid.a_refresh_token(refresh_token)
+            return TokenBaseSchema.model_validate(tokens_data)
         except KeycloakPostError:
             raise HTTPException(
                 status_code=400,
@@ -86,7 +90,7 @@ class KeycloakService:
             cls,
             external_id: str,
             data: dict
-    ):
+    ) -> None:
         try:
             await cls.keycloak_admin.a_update_user(external_id, data)
         except KeycloakPostError:
