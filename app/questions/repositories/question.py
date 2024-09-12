@@ -261,7 +261,7 @@ class QuestionRepository(BaseRepository):
         questions = await self.session.scalars(stmt)
         return questions.unique().all()
 
-    async def get_questions_with_no_answer(
+    async def get_questions_without_answer(
             self
     ) -> Sequence[QuestionModel]:
         questions_with_no_answers_subquery = (
@@ -292,7 +292,7 @@ class QuestionRepository(BaseRepository):
         unresolved_questions = await self.session.execute(stmt)
         return unresolved_questions.unique().all()
 
-    async def get_questions_with_no_accepted_answer(
+    async def get_questions_without_accepted_answer(
             self
     ) -> Sequence[QuestionModel]:
         stmt = (

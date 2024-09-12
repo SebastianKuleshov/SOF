@@ -1,4 +1,3 @@
-from celery.schedules import crontab
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

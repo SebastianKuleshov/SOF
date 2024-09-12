@@ -62,8 +62,8 @@ services:
     volumes:
       - ".:/app/"
     environment:
-      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT_CONTAINER}/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT_CONTAINER}/0
     container_name: celery_worker
     networks:
       - SOFCopy
@@ -79,8 +79,8 @@ services:
     volumes:
       - ".:/app/"
     environment:
-      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT_CONTAINER}/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT_CONTAINER}/0
     container_name: celery_beat
     networks:
       - SOFCopy
