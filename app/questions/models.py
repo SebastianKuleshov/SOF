@@ -1,25 +1,24 @@
 from typing import Text
 
-from sqlalchemy import ForeignKey, Table, Column
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk
+from app.common.models_mixins import CreatedAtUpdatedAtMixin, int_pk, \
+    CreatedAtMixin
 from app.core.adapters.postgres.postgres_adapter import Base
 
-question_tag = Table(
-    'question_tag',
-    Base.metadata,
-    Column(
-        'question_id',
+
+class QuestionTagModel(Base, CreatedAtMixin):
+    __tablename__ = 'question_tag'
+
+    question_id: Mapped[int] = mapped_column(
         ForeignKey('questions.id', ondelete='CASCADE'),
         primary_key=True
-    ),
-    Column(
-        'tag_id',
+    )
+    tag_id: Mapped[int] = mapped_column(
         ForeignKey('tags.id', ondelete='CASCADE'),
         primary_key=True
     )
-)
 
 
 class QuestionModel(CreatedAtUpdatedAtMixin, Base):

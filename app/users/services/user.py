@@ -5,7 +5,8 @@ from keycloak import KeycloakError
 
 from app.common.repositories import StorageItemRepository
 from app.common.schemas import StorageItemCreateSchema
-from app.common.services import StorageItemService, KeycloakService
+from app.common.services import StorageItemService, KeycloakService, \
+    ReportService
 from app.dependencies import get_settings
 from app.roles.models import RoleModel
 from app.roles.repositories import RoleRepository
@@ -22,13 +23,15 @@ class UserService:
             storage_item_service: Annotated[StorageItemService, Depends()],
             keycloak_service: Annotated[KeycloakService, Depends()],
             storage_item_repository: Annotated[
-                StorageItemRepository, Depends()]
+                StorageItemRepository, Depends()],
+            report_service: Annotated[ReportService, Depends()]
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.storage_item_service = storage_item_service
         self.keycloak_service = keycloak_service
         self.storage_item_repository = storage_item_repository
+        self.report_service = report_service
 
     async def get_user(
             self,
@@ -59,6 +62,8 @@ class UserService:
             skip: int,
             limit: int
     ) -> list[UserOutSchema]:
+        await self.report_service.generate_and_send_report()
+
         users = await self.user_repository.get_multi(skip, limit)
 
         settings = get_settings()
